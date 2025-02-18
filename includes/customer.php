@@ -16,7 +16,11 @@ function createCustomer($data) {
               VALUES ('$name', '$company_name', '$email', '$phone', '$website_url', " . 
               ($logo_path ? "'$logo_path'" : "NULL") . ", $created_by)";
               
-    return $conn->query($query);
+    if ($conn->query($query)) {
+        return ['success' => true, 'id' => $conn->insert_id];
+    }
+    
+    return ['success' => false, 'message' => 'Failed to create customer'];
 }
 
 function updateCustomer($id, $data) {
@@ -122,4 +126,69 @@ function uploadCustomerLogo($file) {
     }
     
     return false;
+}
+
+function getCustomerUsers($customerId) {
+    $conn = getDbConnection();
+    $customerId = (int)$customerId;
+    
+    $query = "SELECT u.id, u.name, u.email 
+              FROM customer_users cu 
+              JOIN users u ON cu.user_id = u.id 
+              WHERE cu.customer_id = $customerId";
+              
+    $result = $conn->query($query);
+    
+    $users = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $users[] = $row;
+        }
+    }
+    
+    return $users;
+}
+
+function updateCustomerUsers($customerId, $userIds) {
+    $conn = getDbConnection();
+    $customerId = (int)$customerId;
+    
+    // First, remove all existing assignments
+    $conn->query("DELETE FROM customer_users WHERE customer_id = $customerId");
+    
+    // Then add new assignments
+    if (!empty($userIds)) {
+        $values = [];
+        foreach ($userIds as $userId) {
+            $userId = (int)$userId;
+            $values[] = "($customerId, $userId)";
+        }
+        
+        $query = "INSERT INTO customer_users (customer_id, user_id) VALUES " . implode(',', $values);
+        return $conn->query($query);
+    }
+    
+    return true;
+}
+
+function getCustomersByUser($userId) {
+    $conn = getDbConnection();
+    $userId = (int)$userId;
+    
+    $query = "SELECT c.* 
+              FROM customers c 
+              JOIN customer_users cu ON c.id = cu.customer_id 
+              WHERE cu.user_id = $userId 
+              ORDER BY c.company_name";
+              
+    $result = $conn->query($query);
+    
+    $customers = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $customers[] = $row;
+        }
+    }
+    
+    return $customers;
 } 

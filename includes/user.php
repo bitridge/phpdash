@@ -127,4 +127,20 @@ function createUser($data) {
     }
     
     return ['success' => false, 'message' => 'Creation failed'];
+}
+
+function getSeoProviders() {
+    $conn = getDbConnection();
+    
+    $query = "SELECT id, name, email FROM users WHERE role = 'seo_provider' ORDER BY name";
+    $result = $conn->query($query);
+    
+    $providers = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $providers[] = $row;
+        }
+    }
+    
+    return $providers;
 } 
