@@ -7,11 +7,12 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'] ?? '';
     $password = $_POST['password'] ?? '';
+    $remember = isset($_POST['remember']) ? true : false;
     
     // Debug information
     error_log("Login attempt - Email: " . $email);
     
-    if (loginUser($email, $password)) {
+    if (loginUser($email, $password, $remember)) {
         header('Location: index.php');
         exit();
     } else {
@@ -57,7 +58,12 @@ if (!empty($_POST)) {
                             <div class="mb-3">
                                 <label for="password" class="form-label">Password</label>
                                 <input type="password" class="form-control" id="password" name="password" required>
-                                <div class="form-text text-end">
+                            </div>
+                            
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                                <label class="form-check-label" for="remember">Remember me</label>
+                                <div class="float-end">
                                     <a href="forgot_password.php" class="text-decoration-none">Forgot Password?</a>
                                 </div>
                             </div>
