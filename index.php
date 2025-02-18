@@ -56,8 +56,12 @@ include 'templates/header.php';
             <div class="card-body">
                 <h5 class="card-title">Quick Actions</h5>
                 <div class="d-grid gap-2">
-                    <a href="customer-form.php" class="btn btn-success">Add New Customer</a>
-                    <a href="user-form.php" class="btn btn-info">Add New User</a>
+                    <a href="projects.php" class="btn btn-info">View SEO Logs</a>
+                    <a href="project-form.php" class="btn btn-success">Add New Project</a>
+                    <a href="customer-form.php" class="btn btn-primary">Add New Customer</a>
+                    <?php if (isAdmin()): ?>
+                        <a href="user-form.php" class="btn btn-secondary">Add New User</a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

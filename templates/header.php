@@ -47,6 +47,10 @@ if (!isset($pageTitle)) {
                         <a class="nav-link <?php echo $currentPage === 'projects' ? 'active' : ''; ?>" 
                            href="projects.php">Projects</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo $currentPage === 'seo_logs' ? 'active' : ''; ?>" 
+                           href="seo_logs.php">SEO Logs</a>
+                    </li>
                     <?php if (isAdmin()): ?>
                     <li class="nav-item">
                         <a class="nav-link <?php echo $currentPage === 'users' ? 'active' : ''; ?>" 

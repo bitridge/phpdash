@@ -3,6 +3,7 @@ require_once 'config.php';
 require_once 'includes/auth.php';
 require_once 'includes/customer.php';
 require_once 'includes/project.php';
+require_once 'includes/seo_log.php';
 
 // Require login
 requireLogin();
@@ -14,6 +15,14 @@ $project = getProject($projectId);
 if (!$project) {
     header('Location: projects.php');
     exit();
+}
+
+// Handle log deletion
+if (isset($_POST['delete_log'])) {
+    $result = deleteSeoLog($_POST['delete_log']);
+    if (!$result['success']) {
+        $error = $result['message'];
+    }
 }
 
 // Set page title
@@ -126,7 +135,8 @@ include 'templates/header.php';
     
     <!-- Project Details Content -->
     <div class="col-md-8">
-        <div class="card">
+        <!-- Project Details Card -->
+        <div class="card mb-4">
             <div class="card-header">
                 <h5 class="card-title mb-0">Project Details</h5>
             </div>
@@ -139,6 +149,95 @@ include 'templates/header.php';
                     </div>
                 <?php else: ?>
                     <p class="text-muted mb-0">No detailed description available.</p>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- SEO Logs Section -->
+        <div class="card" id="seo-logs">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">SEO Logs</h5>
+                <a href="seo_log_form.php?project_id=<?php echo $project['id']; ?>" 
+                   class="btn btn-success btn-lg">
+                   <i class="bi bi-plus-circle me-2"></i>Add New Log
+                </a>
+            </div>
+            <div class="card-body">
+                <?php
+                $page = isset($_GET['log_page']) ? max(1, (int)$_GET['log_page']) : 1;
+                $logsResult = getSeoLogs($project['id'], $page);
+                
+                if (!empty($logsResult['logs'])):
+                ?>
+                    <div class="timeline">
+                        <?php foreach ($logsResult['logs'] as $log): ?>
+                            <div class="timeline-item mb-4">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <span class="badge bg-<?php echo getLogTypeClass($log['log_type']); ?> me-2">
+                                            <?php echo htmlspecialchars($log['log_type']); ?>
+                                        </span>
+                                        <strong><?php echo date('F j, Y', strtotime($log['log_date'])); ?></strong>
+                                        <small class="text-muted ms-2">
+                                            by <?php echo htmlspecialchars($log['created_by_name']); ?>
+                                        </small>
+                                    </div>
+                                    <div class="btn-group">
+                                        <a href="seo_log_form.php?id=<?php echo $log['id']; ?>" 
+                                           class="btn btn-sm btn-primary">Edit</a>
+                                        <form method="POST" class="d-inline" 
+                                              onsubmit="return confirm('Are you sure you want to delete this log?');">
+                                            <input type="hidden" name="delete_log" value="<?php echo $log['id']; ?>">
+                                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                                
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="ql-snow">
+                                            <div class="ql-editor">
+                                                <?php echo $log['log_details']; ?>
+                                            </div>
+                                        </div>
+                                        
+                                        <?php if ($log['image_path']): ?>
+                                            <div class="mt-3">
+                                                <a href="<?php echo htmlspecialchars($log['image_path']); ?>" 
+                                                   target="_blank">
+                                                    <img src="<?php echo htmlspecialchars($log['image_path']); ?>" 
+                                                         alt="Log Image" class="img-fluid" 
+                                                         style="max-height: 200px;">
+                                                </a>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <?php if ($logsResult['pages'] > 1): ?>
+                        <nav aria-label="SEO Log navigation" class="mt-4">
+                            <ul class="pagination justify-content-center">
+                                <?php for ($i = 1; $i <= $logsResult['pages']; $i++): ?>
+                                    <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
+                                        <a class="page-link" href="?id=<?php echo $project['id']; ?>&log_page=<?php echo $i; ?>#seo-logs">
+                                            <?php echo $i; ?>
+                                        </a>
+                                    </li>
+                                <?php endfor; ?>
+                            </ul>
+                        </nav>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <div class="text-center py-5">
+                        <h4 class="text-muted mb-4">No SEO logs found for this project</h4>
+                        <a href="seo_log_form.php?project_id=<?php echo $project['id']; ?>" 
+                           class="btn btn-success btn-lg">
+                           <i class="bi bi-plus-circle me-2"></i>Create First Log
+                        </a>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
