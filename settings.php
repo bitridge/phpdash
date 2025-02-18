@@ -17,6 +17,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Handle application settings
         $settings->set('app_name', $_POST['app_name'] ?? 'SEO Dashboard');
         
+        // Handle timezone settings
+        $settings->set('timezone', $_POST['timezone'] ?? 'UTC');
+        $settings->set('date_format', $_POST['date_format'] ?? 'Y-m-d');
+        $settings->set('time_format', $_POST['time_format'] ?? 'H:i:s');
+        
         // Handle logo upload
         if (isset($_FILES['app_logo']) && $_FILES['app_logo']['size'] > 0) {
             $logoPath = $settings->uploadLogo($_FILES['app_logo']);
@@ -148,6 +153,64 @@ include 'templates/header.php';
                                 <label for="app_name" class="form-label">Application Name</label>
                                 <input type="text" class="form-control" id="app_name" name="app_name" required
                                        value="<?php echo htmlspecialchars($settings->get('app_name', 'SEO Dashboard')); ?>">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="timezone" class="form-label">Timezone</label>
+                                <select class="form-select" id="timezone" name="timezone">
+                                    <?php
+                                    $current_timezone = $settings->get('timezone', 'UTC');
+                                    $timezones = DateTimeZone::listIdentifiers();
+                                    foreach ($timezones as $timezone) {
+                                        $selected = ($timezone === $current_timezone) ? 'selected' : '';
+                                        echo "<option value=\"$timezone\" $selected>$timezone</option>";
+                                    }
+                                    ?>
+                                </select>
+                                <div class="form-text">Select the timezone for your application</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="date_format" class="form-label">Date Format</label>
+                                <select class="form-select" id="date_format" name="date_format">
+                                    <?php
+                                    $current_date_format = $settings->get('date_format', 'Y-m-d');
+                                    $date_formats = [
+                                        'Y-m-d' => date('Y-m-d'),
+                                        'd/m/Y' => date('d/m/Y'),
+                                        'm/d/Y' => date('m/d/Y'),
+                                        'F j, Y' => date('F j, Y'),
+                                        'j F Y' => date('j F Y'),
+                                        'd-m-Y' => date('d-m-Y'),
+                                    ];
+                                    foreach ($date_formats as $format => $example) {
+                                        $selected = ($format === $current_date_format) ? 'selected' : '';
+                                        echo "<option value=\"$format\" $selected>$example</option>";
+                                    }
+                                    ?>
+                                </select>
+                                <div class="form-text">Choose how dates should be displayed</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="time_format" class="form-label">Time Format</label>
+                                <select class="form-select" id="time_format" name="time_format">
+                                    <?php
+                                    $current_time_format = $settings->get('time_format', 'H:i:s');
+                                    $time_formats = [
+                                        'H:i:s' => date('H:i:s'),
+                                        'H:i' => date('H:i'),
+                                        'h:i:s A' => date('h:i:s A'),
+                                        'h:i A' => date('h:i A'),
+                                        'g:i a' => date('g:i a'),
+                                    ];
+                                    foreach ($time_formats as $format => $example) {
+                                        $selected = ($format === $current_time_format) ? 'selected' : '';
+                                        echo "<option value=\"$format\" $selected>$example</option>";
+                                    }
+                                    ?>
+                                </select>
+                                <div class="form-text">Choose how times should be displayed</div>
                             </div>
                             
                             <div class="mb-3">
@@ -367,6 +430,85 @@ include 'templates/header.php';
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-download"></i> Create & Download Backup
                             </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timezone Settings -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#timezoneSettings">
+                            <i class="bi bi-clock me-2"></i>Timezone & Date Settings
+                        </button>
+                    </h5>
+                </div>
+                
+                <div id="timezoneSettings" class="collapse show">
+                    <div class="card-body">
+                        <form method="POST" action="">
+                            <input type="hidden" name="app_settings" value="1">
+                            
+                            <div class="mb-3">
+                                <label for="timezone" class="form-label">Timezone</label>
+                                <select class="form-select" id="timezone" name="timezone">
+                                    <?php
+                                    $current_timezone = $settings->get('timezone', 'UTC');
+                                    $timezones = DateTimeZone::listIdentifiers();
+                                    foreach ($timezones as $timezone) {
+                                        $selected = ($timezone === $current_timezone) ? 'selected' : '';
+                                        echo "<option value=\"$timezone\" $selected>$timezone</option>";
+                                    }
+                                    ?>
+                                </select>
+                                <div class="form-text">Select the timezone for your application</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="date_format" class="form-label">Date Format</label>
+                                <select class="form-select" id="date_format" name="date_format">
+                                    <?php
+                                    $current_date_format = $settings->get('date_format', 'Y-m-d');
+                                    $date_formats = [
+                                        'Y-m-d' => date('Y-m-d'),
+                                        'd/m/Y' => date('d/m/Y'),
+                                        'm/d/Y' => date('m/d/Y'),
+                                        'F j, Y' => date('F j, Y'),
+                                        'j F Y' => date('j F Y'),
+                                        'd-m-Y' => date('d-m-Y'),
+                                    ];
+                                    foreach ($date_formats as $format => $example) {
+                                        $selected = ($format === $current_date_format) ? 'selected' : '';
+                                        echo "<option value=\"$format\" $selected>$example</option>";
+                                    }
+                                    ?>
+                                </select>
+                                <div class="form-text">Choose how dates should be displayed</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="time_format" class="form-label">Time Format</label>
+                                <select class="form-select" id="time_format" name="time_format">
+                                    <?php
+                                    $current_time_format = $settings->get('time_format', 'H:i:s');
+                                    $time_formats = [
+                                        'H:i:s' => date('H:i:s'),
+                                        'H:i' => date('H:i'),
+                                        'h:i:s A' => date('h:i:s A'),
+                                        'h:i A' => date('h:i A'),
+                                        'g:i a' => date('g:i a'),
+                                    ];
+                                    foreach ($time_formats as $format => $example) {
+                                        $selected = ($format === $current_time_format) ? 'selected' : '';
+                                        echo "<option value=\"$format\" $selected>$example</option>";
+                                    }
+                                    ?>
+                                </select>
+                                <div class="form-text">Choose how times should be displayed</div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Save Timezone Settings</button>
                         </form>
                     </div>
                 </div>

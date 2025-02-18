@@ -36,6 +36,24 @@ $appName = $settings->get('app_name', 'SEO Dashboard');
     <link href="assets/css/style.css" rel="stylesheet">
 </head>
 <body>
+    <!-- Current Date/Time Bar -->
+    <div class="bg-dark py-1">
+        <div class="container d-flex justify-content-between align-items-center text-white">
+            <small>
+                <i class="bi bi-quote me-1"></i>
+                <span id="daily-quote">Success is not final, failure is not fatal: it is the courage to continue that counts.</span>
+            </small>
+            <small>
+                <i class="bi bi-clock me-1"></i>
+                <span id="current-datetime">
+                    <?php 
+                    echo $settings->getCurrentDateTime(); 
+                    ?>
+                </span>
+            </small>
+        </div>
+    </div>
+
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="index.php">

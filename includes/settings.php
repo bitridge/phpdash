@@ -5,10 +5,18 @@ class Settings {
     private static $instance = null;
     private $settings = [];
     private $conn;
+    private $timezone = null;
 
     private function __construct() {
         $this->conn = getDbConnection();
         $this->loadSettings();
+        $this->initializeTimezone();
+    }
+
+    private function initializeTimezone() {
+        $timezone = $this->get('timezone', 'UTC');
+        date_default_timezone_set($timezone);
+        $this->timezone = new DateTimeZone($timezone);
     }
 
     public static function getInstance() {
@@ -155,5 +163,39 @@ class Settings {
         }
         
         return false;
+    }
+
+    public function formatDate($date, $includeTime = false) {
+        if (!$date) return '';
+        
+        $dateObj = new DateTime($date, $this->timezone);
+        $format = $this->get('date_format', 'Y-m-d');
+        
+        if ($includeTime) {
+            $format .= ' ' . $this->get('time_format', 'H:i:s');
+        }
+        
+        return $dateObj->format($format);
+    }
+
+    public function formatTime($time) {
+        if (!$time) return '';
+        
+        // If only time is provided, add a date to make it parseable
+        if (strlen($time) <= 8) {
+            $time = date('Y-m-d') . ' ' . $time;
+        }
+        
+        $dateObj = new DateTime($time, $this->timezone);
+        return $dateObj->format($this->get('time_format', 'H:i:s'));
+    }
+
+    public function getCurrentDateTime() {
+        $dateObj = new DateTime('now', $this->timezone);
+        return $dateObj->format($this->get('date_format', 'Y-m-d') . ' ' . $this->get('time_format', 'H:i:s'));
+    }
+
+    public function getTimezone() {
+        return $this->timezone;
     }
 } 
