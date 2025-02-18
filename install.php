@@ -1,6 +1,23 @@
 <?php
 session_start();
 
+// Handle test connection request
+if (isset($_POST['test_connection'])) {
+    $result = testDatabaseConnection(
+        $_POST['db_host'],
+        $_POST['db_user'],
+        $_POST['db_pass'],
+        $_POST['db_name']
+    );
+    
+    if ($result['success']) {
+        echo "Connection successful! Database '" . htmlspecialchars($_POST['db_name']) . "' is accessible.";
+    } else {
+        echo "Connection failed: " . htmlspecialchars($result['message']);
+    }
+    exit;
+}
+
 // Check if config.php exists and installation is already completed
 if (file_exists('config.php') && !isset($_GET['force'])) {
     die('Installation has already been completed. Delete config.php first if you want to reinstall.');
@@ -225,7 +242,7 @@ $requirementsMet = !in_array(false, $requirements);
 
                     <?php if ($requirementsMet): ?>
                         <h3 class="mt-4 mb-3">Database Configuration</h3>
-                        <form method="POST" action="install.php">
+                        <form method="POST" action="install.php" id="db-form">
                             <input type="hidden" name="check_db" value="1">
                             
                             <div class="mb-3">
@@ -247,6 +264,9 @@ $requirementsMet = !in_array(false, $requirements);
                             <div class="mb-3">
                                 <label for="db_pass" class="form-label">Database Password</label>
                                 <input type="password" class="form-control" id="db_pass" name="db_pass" required>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-secondary" id="test-connection">Test Connection</button>
+                                </div>
                             </div>
                             
                             <button type="submit" class="btn btn-primary">Continue</button>
@@ -288,5 +308,36 @@ $requirementsMet = !in_array(false, $requirements);
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('test-connection').addEventListener('click', function() {
+            const formData = new FormData(document.getElementById('db-form'));
+            formData.append('test_connection', '1');
+            
+            // Disable the test button and show loading state
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Testing...';
+            
+            fetch('install.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(result => {
+                // Re-enable the test button
+                this.disabled = false;
+                this.innerHTML = 'Test Connection';
+                
+                // Show the result
+                alert(result);
+            })
+            .catch(error => {
+                // Re-enable the test button
+                this.disabled = false;
+                this.innerHTML = 'Test Connection';
+                
+                alert('Error testing connection: ' + error.message);
+            });
+        });
+    </script>
 </body>
 </html> 
