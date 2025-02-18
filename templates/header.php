@@ -107,17 +107,25 @@ $appName = $settings->get('app_name', 'SEO Dashboard');
                         </a>
                     </li>
                     <?php endif; ?>
-                    <li class="nav-item">
-                        <span class="nav-link">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
+                           data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-person-circle me-1"></i>
                             <?php echo htmlspecialchars($_SESSION['user_name']); ?>
-                        </span>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="logout.php">
-                            <i class="bi bi-box-arrow-right me-1"></i>
-                            Logout
                         </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li>
+                                <a class="dropdown-item" href="profile.php">
+                                    <i class="bi bi-person me-2"></i>My Profile
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="logout.php">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
             </div>
