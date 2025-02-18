@@ -157,10 +157,16 @@ include 'templates/header.php';
         <div class="card" id="seo-logs">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">SEO Logs</h5>
-                <a href="seo_log_form.php?project_id=<?php echo $project['id']; ?>" 
-                   class="btn btn-success btn-lg">
-                   <i class="bi bi-plus-circle me-2"></i>Add New Log
-                </a>
+                <div>
+                    <a href="generate_report.php?project_id=<?php echo $project['id']; ?>" 
+                       class="btn btn-primary btn-lg me-2">
+                       <i class="bi bi-file-pdf me-2"></i>Generate Report
+                    </a>
+                    <a href="seo_log_form.php?project_id=<?php echo $project['id']; ?>" 
+                       class="btn btn-success btn-lg">
+                       <i class="bi bi-plus-circle me-2"></i>Add New Log
+                    </a>
+                </div>
             </div>
             <div class="card-body">
                 <?php
