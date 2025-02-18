@@ -228,7 +228,7 @@ include 'templates/header.php';
             <div class="tab-pane fade" id="smtp" role="tabpanel">
                 <div class="card">
                     <div class="card-body">
-                        <form method="POST">
+                        <form method="POST" name="smtp_settings">
                             <input type="hidden" name="smtp_settings" value="1">
                             
                             <div class="mb-3">
@@ -320,7 +320,7 @@ include 'templates/header.php';
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <form id="testEmailForm">
+                            <form id="testEmailForm" onsubmit="return false;">
                                 <div class="mb-3">
                                     <label for="test_email" class="form-label">Recipient Email</label>
                                     <input type="email" class="form-control" id="test_email" name="test_email" required
@@ -375,110 +375,181 @@ include 'templates/header.php';
     </div>
 </div>
 
+<!-- Add this before the closing </div> of the main container -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
 <script>
-// Toggle SMTP settings based on mail server type
-document.getElementById('mail_server_type')?.addEventListener('change', function() {
-    const smtpSettings = document.getElementById('smtp-settings');
-    if (this.value === 'local') {
-        smtpSettings.classList.add('d-none');
-    } else {
-        smtpSettings.classList.remove('d-none');
-    }
-});
-
-// Test SMTP Connection
-document.getElementById('testSmtp')?.addEventListener('click', function() {
-    // Get current form values
-    const formData = new FormData(this.closest('form'));
-    formData.append('test_smtp', '1');
-    
-    // Disable button and show loading state
-    this.disabled = true;
-    this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Testing...';
-    
-    // Send test request
-    fetch('test_smtp.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        showToast(data.message, data.success ? 'success' : 'danger');
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('Failed to test connection. Please check your settings and try again.', 'danger');
-    })
-    .finally(() => {
-        // Reset button state
-        this.disabled = false;
-        this.innerHTML = 'Test Connection';
-    });
-});
-
-// Send Test Email
-document.getElementById('sendTestEmail')?.addEventListener('click', function() {
-    const button = this;
-    const form = document.getElementById('testEmailForm');
-    const formData = new FormData(form);
-    
-    // Add current email settings
-    const settingsForm = document.querySelector('#smtp form');
-    const settingsData = new FormData(settingsForm);
-    for (let [key, value] of settingsData.entries()) {
-        formData.append(key, value);
-    }
-    
-    // Disable button and show loading state
-    button.disabled = true;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
-    
-    // Send test email
-    fetch('test_smtp.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        showToast(data.message, data.success ? 'success' : 'danger');
-        if (data.success) {
-            // Close modal on success
-            const modal = bootstrap.Modal.getInstance(document.getElementById('testEmailModal'));
-            modal.hide();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('Failed to send test email. Please check your settings and try again.', 'danger');
-    })
-    .finally(() => {
-        // Reset button state
-        button.disabled = false;
-        button.innerHTML = 'Send Test Email';
-    });
-});
-
-// Helper function to show toast messages
 function showToast(message, type = 'success') {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
+    }
+
+    // Create toast element
     const toast = document.createElement('div');
     toast.className = `toast align-items-center text-white bg-${type} border-0`;
     toast.setAttribute('role', 'alert');
     toast.setAttribute('aria-live', 'assertive');
     toast.setAttribute('aria-atomic', 'true');
     
+    // Create toast content
     toast.innerHTML = `
         <div class="d-flex">
-            <div class="toast-body">${message}</div>
+            <div class="toast-body">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                ${message}
+            </div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     `;
     
-    document.querySelector('.toast-container').appendChild(toast);
-    const bsToast = new bootstrap.Toast(toast);
+    // Add toast to container
+    toastContainer.appendChild(toast);
+    
+    // Initialize and show toast
+    const bsToast = new bootstrap.Toast(toast, {
+        autohide: true,
+        delay: 3000
+    });
     bsToast.show();
     
-    // Remove toast when hidden
-    toast.addEventListener('hidden.bs.toast', () => toast.remove());
+    // Remove toast element after it's hidden
+    toast.addEventListener('hidden.bs.toast', function () {
+        toast.remove();
+    });
+}
+
+// Test SMTP Connection
+document.getElementById('testSmtp')?.addEventListener('click', function() {
+    const form = this.closest('form');
+    if (!form) {
+        showToast('Form not found', 'danger');
+        return;
+    }
+    const formData = new FormData(form);
+    
+    fetch('test_smtp.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new TypeError("Expected JSON response but got " + contentType);
+        }
+        return response.json();
+    })
+    .then(data => {
+        showToast(data.message, data.success ? 'success' : 'danger');
+        console.log('Debug info:', data.debug);
+    })
+    .catch(error => {
+        showToast('Failed to test connection: ' + error.message, 'danger');
+        console.error('Error:', error);
+    });
+});
+
+// Send Test Email
+document.getElementById('sendTestEmail')?.addEventListener('click', function() {
+    const smtpForm = document.querySelector('form[name="smtp_settings"]');
+    const testEmailForm = document.getElementById('testEmailForm');
+    
+    if (!smtpForm || !testEmailForm) {
+        console.error('SMTP Form:', smtpForm);
+        console.error('Test Email Form:', testEmailForm);
+        showToast('Required forms not found', 'danger');
+        return;
+    }
+    
+    // Validate test email form
+    if (!testEmailForm.checkValidity()) {
+        testEmailForm.reportValidity();
+        return;
+    }
+    
+    // Create a new FormData object
+    const formData = new FormData();
+    
+    // Add SMTP settings
+    for (const pair of new FormData(smtpForm).entries()) {
+        formData.append(pair[0], pair[1]);
+    }
+    
+    // Add test email data
+    formData.append('test_email', testEmailForm.querySelector('[name="test_email"]').value);
+    formData.append('test_subject', testEmailForm.querySelector('[name="test_subject"]').value);
+    formData.append('test_message', testEmailForm.querySelector('[name="test_message"]').value);
+    formData.append('send_test_email', '1');
+    
+    // Show loading state
+    const sendButton = this;
+    const originalText = sendButton.innerHTML;
+    sendButton.disabled = true;
+    sendButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+    
+    fetch('test_smtp.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new TypeError("Expected JSON response but got " + contentType);
+        }
+        return response.json();
+    })
+    .then(data => {
+        showToast(data.message, data.success ? 'success' : 'danger');
+        if (data.success) {
+            const modal = document.getElementById('testEmailModal');
+            if (modal) {
+                bootstrap.Modal.getInstance(modal)?.hide();
+            }
+        }
+        if (data.debug) {
+            console.log('Debug info:', data.debug);
+        }
+    })
+    .catch(error => {
+        showToast('Failed to send test email: ' + error.message, 'danger');
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        // Reset button state
+        sendButton.disabled = false;
+        sendButton.innerHTML = originalText;
+    });
+});
+
+// Toggle SMTP settings visibility
+document.querySelector('[name="mail_server_type"]')?.addEventListener('change', function() {
+    const smtpSettings = document.getElementById('smtp-settings');
+    if (smtpSettings) {
+        smtpSettings.style.display = this.value === 'smtp' ? 'block' : 'none';
+    }
+});
+
+// Initialize tooltips
+document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(tooltip => {
+    new bootstrap.Tooltip(tooltip);
+});
+
+// Initialize any existing mail server type selection
+const mailServerType = document.querySelector('[name="mail_server_type"]');
+if (mailServerType) {
+    const smtpSettings = document.getElementById('smtp-settings');
+    if (smtpSettings) {
+        smtpSettings.style.display = mailServerType.value === 'smtp' ? 'block' : 'none';
+    }
 }
 </script>
 

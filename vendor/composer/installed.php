@@ -3,7 +3,7 @@
         'name' => 'yourusername/seo-dashboard',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'e82868d305a50e5468f3bcca3d83094180db2753',
+        'reference' => '5dec7e818b1ce88d9cb75f9fbd53e530b756fa85',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -46,6 +46,15 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
+        'phpmailer/phpmailer' => array(
+            'pretty_version' => 'v6.9.3',
+            'version' => '6.9.3.0',
+            'reference' => '2f5c94fe7493efc213f643c23b1b1c249d40f47e',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../phpmailer/phpmailer',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'sabberworm/php-css-parser' => array(
             'pretty_version' => 'v8.7.0',
             'version' => '8.7.0.0',
@@ -58,7 +67,7 @@
         'yourusername/seo-dashboard' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'e82868d305a50e5468f3bcca3d83094180db2753',
+            'reference' => '5dec7e818b1ce88d9cb75f9fbd53e530b756fa85',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
