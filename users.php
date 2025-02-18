@@ -23,6 +23,11 @@ $result = getUsers($page);
 
 // Include header
 include 'templates/header.php';
+
+// Helper function to format role display
+function formatRole($role) {
+    return $role === 'admin' ? 'Admin' : 'SEO Provider';
+}
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -54,7 +59,7 @@ include 'templates/header.php';
                             <td><?php echo htmlspecialchars($user['email']); ?></td>
                             <td>
                                 <span class="badge bg-<?php echo $user['role'] === 'admin' ? 'primary' : 'secondary'; ?>">
-                                    <?php echo htmlspecialchars($user['role']); ?>
+                                    <?php echo formatRole($user['role']); ?>
                                 </span>
                             </td>
                             <td><?php echo date('M j, Y', strtotime($user['created_at'])); ?></td>
