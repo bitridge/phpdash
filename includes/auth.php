@@ -64,7 +64,7 @@ function isAdmin() {
 
 function requireLogin() {
     if (!isLoggedIn()) {
-        header('Location: login.php');
+        header('Location: /login');
         exit();
     }
 }
@@ -72,13 +72,13 @@ function requireLogin() {
 function requireAdmin() {
     requireLogin();
     if (!isAdmin()) {
-        header('Location: index.php');
+        header('Location: /');
         exit();
     }
 }
 
 function logout() {
     session_destroy();
-    header('Location: login.php');
+    header('Location: /login');
     exit();
 } 
