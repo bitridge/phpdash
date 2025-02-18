@@ -151,9 +151,39 @@ document.getElementById('generatePassword').addEventListener('click', function()
     document.getElementById('new_password').value = password;
     document.getElementById('confirm_password').value = password;
     
-    // Show a temporary alert with the generated password
-    alert('Generated password: ' + password + '\nPlease save this password securely.');
+    // Copy to clipboard
+    navigator.clipboard.writeText(password).then(() => {
+        // Create and show toast notification
+        const toast = document.createElement('div');
+        toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed bottom-0 end-0 m-3';
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="bi bi-clipboard-check"></i> Password copied to clipboard!
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        const bsToast = new bootstrap.Toast(toast, { autohide: true, delay: 3000 });
+        bsToast.show();
+        
+        // Remove toast element after it's hidden
+        toast.addEventListener('hidden.bs.toast', function () {
+            document.body.removeChild(toast);
+        });
+    }).catch(err => {
+        console.error('Failed to copy password: ', err);
+        alert('Generated password: ' + password + '\nPlease copy it manually.');
+    });
 });
 </script>
+
+<!-- Add toast container -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
 
 <?php include 'templates/footer.php'; ?> 
