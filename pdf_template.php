@@ -43,10 +43,32 @@
         }
         .section-content {
             margin-bottom: 15px;
+            margin-top: 15px;
+        }
+        .section-content p {
+            margin: 0 0 10px 0;
+        }
+        .section-content ul, .section-content ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .section-content li {
+            margin-bottom: 5px;
+        }
+        .section-image-container {
+            width: 100%;
+            margin: 15px 0;
+            text-align: center;
+            max-height: 400px;
+            overflow: hidden;
         }
         .section-image {
             max-width: 100%;
-            margin: 15px 0;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            object-fit: contain;
+            max-height: 400px;
         }
         .log-entry {
             margin-bottom: 20px;
@@ -70,9 +92,18 @@
             color: #666;
             margin-left: 10px;
         }
-        .log-image {
-            max-width: 100%;
+        .log-image-container {
+            width: 100%;
             margin-top: 10px;
+            text-align: center;
+        }
+        .log-image {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            object-fit: contain;
         }
         .page-break {
             page-break-after: always;
@@ -82,7 +113,7 @@
 <body>
     <!-- Header -->
     <div class="header">
-        <?php if ($project['logo_path']): ?>
+        <?php if ($project['logo_path'] && file_exists($project['logo_path'])): ?>
             <img src="<?php echo $project['logo_path']; ?>" alt="Project Logo" class="project-logo">
         <?php endif; ?>
         <div class="project-name"><?php echo htmlspecialchars($project['project_name']); ?></div>
@@ -100,12 +131,21 @@
     <?php foreach ($report['sections'] as $section): ?>
         <div class="section">
             <h2 class="section-title"><?php echo htmlspecialchars($section['title']); ?></h2>
-            <div class="section-content">
-                <?php echo $section['content']; ?>
-            </div>
-            <?php if (!empty($section['image'])): ?>
-                <img src="<?php echo $section['image']; ?>" alt="Section Image" class="section-image">
+            
+            <?php if (!empty($section['image']) && file_exists($section['image'])): ?>
+                <div class="section-image-container">
+                    <img src="<?php echo $section['image']; ?>" alt="Section Image" class="section-image">
+                </div>
             <?php endif; ?>
+            
+            <div class="section-content">
+                <?php 
+                    // Process and output the content
+                    $content = html_entity_decode($section['content']);
+                    $content = str_replace(['<p><br></p>', '<p></p>'], '', $content); // Remove empty paragraphs
+                    echo $content;
+                ?>
+            </div>
         </div>
     <?php endforeach; ?>
 
@@ -126,8 +166,10 @@
                     <div class="log-content">
                         <?php echo $log['log_details']; ?>
                     </div>
-                    <?php if ($log['image_path']): ?>
-                        <img src="<?php echo $log['image_path']; ?>" alt="Log Image" class="log-image">
+                    <?php if (!empty($log['image_path']) && file_exists($log['image_path'])): ?>
+                        <div class="log-image-container">
+                            <img src="<?php echo $log['image_path']; ?>" alt="Log Image" class="log-image">
+                        </div>
                     <?php endif; ?>
                 </div>
             <?php endforeach; ?>

@@ -37,31 +37,37 @@ $report = [
 // Process sections
 if (isset($_POST['sections'])) {
     foreach ($_POST['sections'] as $index => $section) {
-        $sectionData = [
-            'title' => $section['title'],
-            'content' => $section['content'],
-            'image' => null
-        ];
-
-        // Handle section image
-        if (isset($_FILES['sections']['name'][$index]['image']) && 
-            $_FILES['sections']['size'][$index]['image'] > 0) {
-            
-            $file = [
-                'name' => $_FILES['sections']['name'][$index]['image'],
-                'type' => $_FILES['sections']['type'][$index]['image'],
-                'tmp_name' => $_FILES['sections']['tmp_name'][$index]['image'],
-                'error' => $_FILES['sections']['error'][$index]['image'],
-                'size' => $_FILES['sections']['size'][$index]['image']
+        // Ensure we have both title and content
+        if (!empty($section['title']) && isset($section['content'])) {
+            $sectionData = [
+                'title' => $section['title'],
+                'content' => trim($section['content']), // Ensure content is trimmed
+                'image' => null
             ];
-            
-            $imagePath = uploadReportImage($file);
-            if ($imagePath) {
-                $sectionData['image'] = $imagePath;
+
+            // Handle section image
+            if (isset($_FILES['sections']['name'][$index]['image']) && 
+                $_FILES['sections']['size'][$index]['image'] > 0) {
+                
+                $file = [
+                    'name' => $_FILES['sections']['name'][$index]['image'],
+                    'type' => $_FILES['sections']['type'][$index]['image'],
+                    'tmp_name' => $_FILES['sections']['tmp_name'][$index]['image'],
+                    'error' => $_FILES['sections']['error'][$index]['image'],
+                    'size' => $_FILES['sections']['size'][$index]['image']
+                ];
+                
+                $imagePath = uploadReportImage($file);
+                if ($imagePath) {
+                    $sectionData['image'] = $imagePath;
+                }
+            }
+
+            // Only add section if it has content
+            if (!empty(strip_tags($sectionData['content']))) {
+                $report['sections'][] = $sectionData;
             }
         }
-
-        $report['sections'][] = $sectionData;
     }
 }
 
@@ -75,12 +81,17 @@ if (isset($_POST['selected_logs'])) {
     }
 }
 
-// Initialize DomPDF
+// Initialize DomPDF with updated options
 $options = new Options();
 $options->set('isHtml5ParserEnabled', true);
 $options->set('isPhpEnabled', true);
 $options->set('isRemoteEnabled', true);
 $options->set('defaultFont', 'Helvetica');
+$options->set('chroot', [
+    __DIR__,
+    __DIR__ . '/uploads'
+]);
+$options->setIsRemoteEnabled(true);
 
 $dompdf = new Dompdf($options);
 
@@ -90,34 +101,28 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "
 
 // Convert relative paths to absolute for images
 if ($project['logo_path']) {
-    $project['logo_path'] = $baseUrl . $project['logo_path'];
+    $project['logo_path'] = realpath(__DIR__ . '/' . $project['logo_path']);
 }
 
 foreach ($report['sections'] as &$section) {
     if ($section['image']) {
-        $section['image'] = $baseUrl . $section['image'];
+        // Ensure we're using the full server path for the image
+        $section['image'] = realpath($section['image']);
+        if (!$section['image']) {
+            // If realpath fails, try with the __DIR__ prefix
+            $section['image'] = realpath(__DIR__ . '/' . $section['image']);
+        }
     }
 }
 
 foreach ($report['logs'] as &$log) {
     if ($log['image_path']) {
-        $log['image_path'] = $baseUrl . $log['image_path'];
+        $log['image_path'] = realpath(__DIR__ . '/' . $log['image_path']);
     }
 }
 
-// Helper function for log type colors
-function getLogTypeColor($type) {
-    $colors = [
-        'Technical' => '#3498db',
-        'On-Page SEO' => '#2ecc71',
-        'Off-Page SEO' => '#3498db',
-        'Content' => '#f1c40f',
-        'Analytics' => '#e74c3c',
-        'Other' => '#95a5a6'
-    ];
-    
-    return $colors[$type] ?? '#95a5a6';
-}
+// Set paper size and orientation
+$dompdf->setPaper('A4', 'portrait');
 
 // Load and render template
 ob_start();
@@ -125,11 +130,27 @@ include 'pdf_template.php';
 $html = ob_get_clean();
 
 $dompdf->loadHtml($html);
-$dompdf->setPaper('A4', 'portrait');
 $dompdf->render();
 
 // Generate filename
 $filename = sanitizeFilename($project['project_name'] . ' - ' . $report['title']) . '.pdf';
+
+// Save the PDF file
+$pdfPath = 'uploads/reports/' . $filename;
+if (!file_exists('uploads/reports')) {
+    mkdir('uploads/reports', 0777, true);
+}
+
+file_put_contents($pdfPath, $dompdf->output());
+
+// Save report to database
+saveReport(
+    $project['id'],
+    $report['title'],
+    $report['description'],
+    $pdfPath,
+    $_SESSION['user_id']
+);
 
 // Output PDF
 $dompdf->stream($filename, ['Attachment' => true]);
@@ -147,7 +168,7 @@ function sanitizeFilename($filename) {
 
 // Helper function to upload report images
 function uploadReportImage($file) {
-    $targetDir = __DIR__ . '/uploads/reports/';
+    $targetDir = __DIR__ . '/uploads/reports/images/';
     if (!file_exists($targetDir)) {
         mkdir($targetDir, 0777, true);
     }
@@ -156,8 +177,22 @@ function uploadReportImage($file) {
     $targetPath = $targetDir . $fileName;
     
     if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-        return 'uploads/reports/' . $fileName;
+        return $targetPath; // Return full path for PDF
     }
     
     return false;
+}
+
+// Helper function for log type colors (moved from template)
+function getLogTypeColor($type) {
+    $colors = [
+        'Technical' => '#3498db',
+        'On-Page SEO' => '#2ecc71',
+        'Off-Page SEO' => '#3498db',
+        'Content' => '#f1c40f',
+        'Analytics' => '#e74c3c',
+        'Other' => '#95a5a6'
+    ];
+    
+    return $colors[$type] ?? '#95a5a6';
 } 

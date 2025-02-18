@@ -16,8 +16,8 @@ if (!$project) {
     exit();
 }
 
-// Get all SEO logs for this project
-$logsResult = getSeoLogs($project['id'], 1, PHP_INT_MAX);
+// Get current month's SEO logs for this project
+$currentMonthLogs = getCurrentMonthSeoLogs($project['id']);
 
 // Set page title
 $pageTitle = 'Generate Report - ' . $project['project_name'];
@@ -89,6 +89,7 @@ include 'templates/header.php';
             <div class="card mb-4">
                 <div class="card-header">
                     <h5 class="card-title mb-0">Include SEO Logs</h5>
+                    <small class="text-muted">Showing logs for <?php echo date('F Y'); ?></small>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
@@ -100,19 +101,23 @@ include 'templates/header.php';
                         </div>
                     </div>
                     <div class="seo-logs-list">
-                        <?php foreach ($logsResult['logs'] as $log): ?>
-                            <div class="form-check mb-2">
-                                <input class="form-check-input log-checkbox" type="checkbox" 
-                                       name="selected_logs[]" value="<?php echo $log['id']; ?>" 
-                                       id="log-<?php echo $log['id']; ?>">
-                                <label class="form-check-label" for="log-<?php echo $log['id']; ?>">
-                                    <span class="badge bg-<?php echo getLogTypeClass($log['log_type']); ?> me-2">
-                                        <?php echo htmlspecialchars($log['log_type']); ?>
-                                    </span>
-                                    <?php echo date('M j, Y', strtotime($log['log_date'])); ?>
-                                </label>
-                            </div>
-                        <?php endforeach; ?>
+                        <?php if (!empty($currentMonthLogs)): ?>
+                            <?php foreach ($currentMonthLogs as $log): ?>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input log-checkbox" type="checkbox" 
+                                           name="selected_logs[]" value="<?php echo $log['id']; ?>" 
+                                           id="log-<?php echo $log['id']; ?>">
+                                    <label class="form-check-label" for="log-<?php echo $log['id']; ?>">
+                                        <span class="badge bg-<?php echo getLogTypeClass($log['log_type']); ?> me-2">
+                                            <?php echo htmlspecialchars($log['log_type']); ?>
+                                        </span>
+                                        <?php echo date('M j, Y', strtotime($log['log_date'])); ?>
+                                    </label>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <p class="text-muted">No logs found for <?php echo date('F Y'); ?></p>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -142,8 +147,8 @@ include 'templates/header.php';
             </div>
             <div class="card-body">
                 <div class="mb-3">
-                    <div class="section-editor" style="height: 150px;"></div>
-                    <input type="hidden" name="sections[{index}][content]">
+                    <div class="section-editor" data-index="{index}" style="height: 150px;"></div>
+                    <input type="hidden" name="sections[{index}][content]" class="section-content-input">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Section Image</label>
@@ -177,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let sectionIndex = 0;
     const sectionsContainer = document.getElementById('sections-container');
     const sectionTemplate = document.getElementById('section-template');
-    const editors = [];
+    const editors = new Map();
 
     // Make sections sortable
     new Sortable(sectionsContainer, {
@@ -207,15 +212,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 ]
             }
         });
-        editors.push(editor);
         
+        editors.set(sectionIndex, editor);
         sectionIndex++;
     });
 
     // Remove section
     document.addEventListener('click', function(e) {
         if (e.target.closest('.remove-section')) {
-            e.target.closest('.section-item').remove();
+            const sectionItem = e.target.closest('.section-item');
+            const editorContainer = sectionItem.querySelector('.section-editor');
+            const index = editorContainer.dataset.index;
+            editors.delete(parseInt(index));
+            sectionItem.remove();
         }
     });
 
@@ -227,16 +236,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Form submission
-    document.getElementById('reportForm').addEventListener('submit', function() {
+    document.getElementById('reportForm').addEventListener('submit', function(e) {
         // Capture main description
         document.getElementById('report_description').value = 
             reportDescriptionEditor.root.innerHTML;
         
         // Capture section contents
-        document.querySelectorAll('.section-item').forEach((section, index) => {
-            const editor = editors[index];
-            const contentInput = section.querySelector('input[name$="[content]"]');
-            contentInput.value = editor.root.innerHTML;
+        document.querySelectorAll('.section-item').forEach(section => {
+            const editorContainer = section.querySelector('.section-editor');
+            const index = editorContainer.dataset.index;
+            const editor = editors.get(parseInt(index));
+            const contentInput = section.querySelector('.section-content-input');
+            
+            if (editor && contentInput) {
+                contentInput.value = editor.root.innerHTML;
+            }
         });
     });
 });

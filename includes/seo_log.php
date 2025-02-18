@@ -208,4 +208,31 @@ function getLogTypeClass($type) {
     ];
     
     return $classes[$type] ?? 'secondary';
+}
+
+/**
+ * Get SEO logs for the current month for a specific project
+ */
+function getCurrentMonthSeoLogs($projectId) {
+    $conn = getDbConnection();
+    $projectId = (int)$projectId;
+    
+    $query = "SELECT s.*, u.name as created_by_name 
+              FROM seo_logs s 
+              LEFT JOIN users u ON s.created_by = u.id 
+              WHERE s.project_id = $projectId 
+              AND MONTH(s.log_date) = MONTH(CURRENT_DATE())
+              AND YEAR(s.log_date) = YEAR(CURRENT_DATE())
+              ORDER BY s.log_date DESC, s.created_at DESC";
+              
+    $result = $conn->query($query);
+    
+    $logs = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $logs[] = $row;
+        }
+    }
+    
+    return $logs;
 } 
