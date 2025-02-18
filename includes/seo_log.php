@@ -235,4 +235,77 @@ function getCurrentMonthSeoLogs($projectId) {
     }
     
     return $logs;
-} 
+}
+
+function getSeoLogsByProvider($userId, $page = 1, $perPage = 10) {
+    $conn = getDbConnection();
+    
+    // Calculate offset
+    $offset = ($page - 1) * $perPage;
+    
+    // Get total count
+    $countQuery = "SELECT COUNT(DISTINCT sl.id) as total 
+                   FROM seo_logs sl 
+                   JOIN projects p ON sl.project_id = p.id 
+                   JOIN customer_users cu ON p.customer_id = cu.customer_id 
+                   WHERE cu.user_id = $userId";
+                   
+    $countResult = $conn->query($countQuery);
+    $totalCount = $countResult->fetch_assoc()['total'];
+    
+    // Get logs
+    $query = "SELECT sl.*, p.project_name, u.name as created_by_name 
+              FROM seo_logs sl 
+              JOIN projects p ON sl.project_id = p.id 
+              LEFT JOIN users u ON sl.created_by = u.id 
+              JOIN customer_users cu ON p.customer_id = cu.customer_id 
+              WHERE cu.user_id = $userId 
+              ORDER BY sl.log_date DESC, sl.created_at DESC 
+              LIMIT $offset, $perPage";
+              
+    $result = $conn->query($query);
+    
+    $logs = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $logs[] = $row;
+        }
+    }
+    
+    return [
+        'logs' => $logs,
+        'total' => $totalCount,
+        'pages' => ceil($totalCount / $perPage)
+    ];
+}
+
+function canAccessSeoLog($logId, $userId) {
+    $conn = getDbConnection();
+    
+    // If user is admin, they have access to all logs
+    if (isAdmin()) {
+        return true;
+    }
+    
+    $logId = (int)$logId;
+    $userId = (int)$userId;
+    
+    // Check if the user is assigned to the project's customer
+    $query = "SELECT 1 FROM seo_logs sl 
+              JOIN projects p ON sl.project_id = p.id 
+              JOIN customer_users cu ON p.customer_id = cu.customer_id 
+              WHERE sl.id = $logId AND cu.user_id = $userId";
+              
+    $result = $conn->query($query);
+    return $result && $result->num_rows > 0;
+}
+
+// Add SEO_LOG_TYPES constant
+define('SEO_LOG_TYPES', [
+    'Technical',
+    'On-Page SEO',
+    'Off-Page SEO',
+    'Content',
+    'Analytics',
+    'Other'
+]); 

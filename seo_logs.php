@@ -12,7 +12,13 @@ $pageTitle = 'SEO Logs';
 
 // Get current page
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-$result = getAllSeoLogs($page);
+
+// Get logs based on user role
+if (isAdmin()) {
+    $result = getAllSeoLogs($page);
+} else {
+    $result = getSeoLogsByProvider($_SESSION['user_id'], $page);
+}
 
 // Include header
 include 'templates/header.php';
@@ -79,6 +85,7 @@ include 'templates/header.php';
                                 <div class="btn-group">
                                     <a href="project-details.php?id=<?php echo $log['project_id']; ?>#seo-logs" 
                                        class="btn btn-sm btn-info me-1">View</a>
+                                    <?php if (isAdmin() || $log['created_by'] === $_SESSION['user_id']): ?>
                                     <a href="seo_log_form.php?id=<?php echo $log['id']; ?>" 
                                        class="btn btn-sm btn-primary me-1">Edit</a>
                                     <form method="POST" action="project-details.php?id=<?php echo $log['project_id']; ?>" 
@@ -87,6 +94,7 @@ include 'templates/header.php';
                                         <input type="hidden" name="delete_log" value="<?php echo $log['id']; ?>">
                                         <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                                     </form>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

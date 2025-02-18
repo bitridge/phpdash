@@ -4,30 +4,38 @@ require_once 'includes/auth.php';
 require_once 'includes/project.php';
 
 // Set page title
-$pageTitle = 'Projects';
+$pageTitle = isAdmin() ? 'All Projects' : 'My Projects';
 
-// Handle delete action
-if (isset($_POST['delete']) && isset($_POST['id'])) {
+// Handle delete action (only for admins)
+if (isAdmin() && isset($_POST['delete']) && isset($_POST['id'])) {
     $result = deleteProject($_POST['id']);
     if (!$result['success']) {
         $error = $result['message'];
     }
 }
 
-// Get customer ID filter
-$customerId = isset($_GET['customer_id']) ? (int)$_GET['customer_id'] : null;
+// Get customer ID filter (only for admins)
+$customerId = isAdmin() ? (isset($_GET['customer_id']) ? (int)$_GET['customer_id'] : null) : null;
 
 // Get current page
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-$result = getProjects($page, 10, $customerId);
+
+// Get projects based on user role
+if (isAdmin()) {
+    $result = getProjects($page, 10, $customerId);
+} else {
+    $result = getProjectsByProvider($_SESSION['user_id'], $page);
+}
 
 // Include header
 include 'templates/header.php';
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Projects</h1>
+    <h1><?php echo $pageTitle; ?></h1>
+    <?php if (isAdmin()): ?>
     <a href="project-form.php" class="btn btn-primary">Add Project</a>
+    <?php endif; ?>
 </div>
 
 <?php if (isset($error)): ?>
@@ -44,7 +52,9 @@ include 'templates/header.php';
                         <th>Customer</th>
                         <th>URL</th>
                         <th>Status</th>
+                        <?php if (isAdmin()): ?>
                         <th>Created By</th>
+                        <?php endif; ?>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -62,10 +72,15 @@ include 'templates/header.php';
                                 </a>
                             </td>
                             <td>
-                                <a href="customers.php?id=<?php echo $project['customer_id']; ?>">
+                                <?php if (isAdmin()): ?>
+                                <a href="customer-details.php?id=<?php echo $project['customer_id']; ?>">
                                     <?php echo htmlspecialchars($project['customer_name']); ?>
                                     (<?php echo htmlspecialchars($project['company_name']); ?>)
                                 </a>
+                                <?php else: ?>
+                                <?php echo htmlspecialchars($project['customer_name']); ?>
+                                (<?php echo htmlspecialchars($project['company_name']); ?>)
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <?php if ($project['project_url']): ?>
@@ -81,11 +96,14 @@ include 'templates/header.php';
                                     <?php echo htmlspecialchars(ucfirst($project['status'])); ?>
                                 </span>
                             </td>
+                            <?php if (isAdmin()): ?>
                             <td><?php echo htmlspecialchars($project['created_by_name']); ?></td>
+                            <?php endif; ?>
                             <td>
                                 <div class="btn-group">
                                     <a href="project-details.php?id=<?php echo $project['id']; ?>" 
                                        class="btn btn-sm btn-info me-1">View</a>
+                                    <?php if (isAdmin()): ?>
                                     <a href="project-form.php?id=<?php echo $project['id']; ?>" 
                                        class="btn btn-sm btn-primary me-1">Edit</a>
                                     <form method="POST" class="d-inline" 
@@ -93,6 +111,10 @@ include 'templates/header.php';
                                         <input type="hidden" name="id" value="<?php echo $project['id']; ?>">
                                         <button type="submit" name="delete" class="btn btn-sm btn-danger">Delete</button>
                                     </form>
+                                    <?php else: ?>
+                                    <a href="seo_log_form.php?project_id=<?php echo $project['id']; ?>" 
+                                       class="btn btn-sm btn-success">Add Log</a>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
@@ -100,7 +122,9 @@ include 'templates/header.php';
                     
                     <?php if (empty($result['projects'])): ?>
                         <tr>
-                            <td colspan="6" class="text-center">No projects found</td>
+                            <td colspan="<?php echo isAdmin() ? '6' : '5'; ?>" class="text-center">
+                                <?php echo isAdmin() ? 'No projects found' : 'No projects assigned to you'; ?>
+                            </td>
                         </tr>
                     <?php endif; ?>
                 </tbody>

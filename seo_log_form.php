@@ -7,154 +7,201 @@ require_once 'includes/seo_log.php';
 // Require login
 requireLogin();
 
-$error = '';
-$success = '';
+// Initialize variables
 $log = null;
-$projectId = isset($_GET['project_id']) ? (int)$_GET['project_id'] : null;
+$project = null;
+$error = null;
 
-// Check if editing
+// Check if editing existing log
 if (isset($_GET['id'])) {
-    $log = getSeoLog($_GET['id']);
-    if (!$log) {
+    $logId = (int)$_GET['id'];
+    $log = getSeoLog($logId);
+    
+    // Check if log exists and user has permission to edit it
+    if (!$log || (!isAdmin() && $log['created_by'] !== $_SESSION['user_id'])) {
         header('Location: projects.php');
         exit();
     }
-    $projectId = $log['project_id'];
-}
-
-// Get project
-$project = $projectId ? getProject($projectId) : null;
-if (!$project) {
-    header('Location: projects.php');
-    exit();
+    
+    $project = getProject($log['project_id']);
+} 
+// Check if adding new log to specific project
+elseif (isset($_GET['project_id'])) {
+    $projectId = (int)$_GET['project_id'];
+    $project = getProject($projectId);
+    
+    // Check if project exists and user has access
+    if (!$project || (!isAdmin() && !canAccessProject($projectId, $_SESSION['user_id']))) {
+        header('Location: projects.php');
+        exit();
+    }
 }
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $data = [
-        'project_id' => $projectId,
-        'log_details' => $_POST['log_details'] ?? '',
+    $logData = [
+        'project_id' => $_POST['project_id'] ?? null,
+        'log_type' => $_POST['log_type'] ?? null,
         'log_date' => $_POST['log_date'] ?? date('Y-m-d'),
-        'log_type' => $_POST['log_type'] ?? ''
+        'log_details' => $_POST['log_details'] ?? null,
+        'created_by' => $_SESSION['user_id']
     ];
     
+    // Check if user has access to the project
+    if (!isAdmin() && !canAccessProject($logData['project_id'], $_SESSION['user_id'])) {
+        header('Location: projects.php');
+        exit();
+    }
+    
     // Handle image upload
-    if (isset($_FILES['image']) && $_FILES['image']['size'] > 0) {
-        $image_path = uploadSeoLogImage($_FILES['image']);
-        if ($image_path) {
-            $data['image_path'] = $image_path;
-        } else {
-            $error = 'Failed to upload image';
+    if (isset($_FILES['log_image']) && $_FILES['log_image']['error'] === UPLOAD_ERR_OK) {
+        $imagePath = uploadSeoLogImage($_FILES['log_image']);
+        if ($imagePath) {
+            $logData['image_path'] = $imagePath;
         }
     }
     
-    if (!$error) {
-        if ($log) {
-            // Update existing log
-            $result = updateSeoLog($log['id'], $data);
-            if ($result['success']) {
-                $success = 'SEO log updated successfully';
-                $log = getSeoLog($log['id']); // Refresh data
-            } else {
-                $error = $result['message'];
-            }
-        } else {
-            // Create new log
-            $result = createSeoLog($data);
-            if ($result['success']) {
-                header('Location: project-details.php?id=' . $projectId . '#seo-logs');
-                exit();
-            } else {
-                $error = $result['message'];
-            }
+    if ($log) {
+        // Editing existing log - check permissions
+        if (!isAdmin() && $log['created_by'] !== $_SESSION['user_id']) {
+            header('Location: projects.php');
+            exit();
         }
+        $result = updateSeoLog($log['id'], $logData);
+    } else {
+        // Creating new log
+        $result = createSeoLog($logData);
+    }
+    
+    if ($result['success']) {
+        header('Location: project-details.php?id=' . $logData['project_id'] . '#seo-logs');
+        exit();
+    } else {
+        $error = $result['message'];
     }
 }
 
+// Get available projects for dropdown
+if (isAdmin()) {
+    $projects = getProjects(1, PHP_INT_MAX)['projects'];
+} else {
+    $projects = getProjectsByProvider($_SESSION['user_id'], 1, PHP_INT_MAX)['projects'];
+}
+
 // Set page title
-$pageTitle = ($log ? 'Edit' : 'Add') . ' SEO Log';
+$pageTitle = $log ? 'Edit SEO Log' : 'Add SEO Log';
 
 // Include header
 include 'templates/header.php';
 ?>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h1><?php echo $log ? 'Edit' : 'Add'; ?> SEO Log</h1>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="projects.php">Projects</a></li>
-                <li class="breadcrumb-item">
-                    <a href="project-details.php?id=<?php echo $project['id']; ?>">
-                        <?php echo htmlspecialchars($project['project_name']); ?>
-                    </a>
-                </li>
-                <li class="breadcrumb-item active" aria-current="page">
-                    <?php echo $log ? 'Edit' : 'Add'; ?> Log
-                </li>
-            </ol>
-        </nav>
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><?php echo $pageTitle; ?></h1>
+            <?php if ($project): ?>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="projects.php">Projects</a></li>
+                    <li class="breadcrumb-item">
+                        <a href="project-details.php?id=<?php echo $project['id']; ?>">
+                            <?php echo htmlspecialchars($project['project_name']); ?>
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        <?php echo $log ? 'Edit Log' : 'Add Log'; ?>
+                    </li>
+                </ol>
+            </nav>
+            <?php endif; ?>
+        </div>
     </div>
-</div>
 
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-body">
-                <?php if ($error): ?>
-                    <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
-                <?php endif; ?>
-                
-                <?php if ($success): ?>
-                    <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
-                <?php endif; ?>
-                
-                <form method="POST" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <label for="log_date" class="form-label">Log Date</label>
-                        <input type="date" class="form-control" id="log_date" name="log_date" required
-                               value="<?php echo $log ? $log['log_date'] : date('Y-m-d'); ?>">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="log_type" class="form-label">Log Type</label>
-                        <select class="form-select" id="log_type" name="log_type" required>
-                            <option value="">Select Type</option>
-                            <?php foreach (getLogTypeOptions() as $value => $label): ?>
-                                <option value="<?php echo $value; ?>" 
-                                        <?php echo ($log && $log['log_type'] === $value) ? 'selected' : ''; ?>>
-                                    <?php echo $label; ?>
+    <?php if ($error): ?>
+        <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
+    <?php endif; ?>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+                <!-- Project Selection -->
+                <div class="mb-3">
+                    <label for="project_id" class="form-label">Project</label>
+                    <?php if ($project): ?>
+                        <input type="hidden" name="project_id" value="<?php echo $project['id']; ?>">
+                        <input type="text" class="form-control" 
+                               value="<?php echo htmlspecialchars($project['project_name']); ?>" 
+                               disabled>
+                    <?php else: ?>
+                        <select name="project_id" id="project_id" class="form-select" required>
+                            <option value="">Select Project</option>
+                            <?php foreach ($projects as $proj): ?>
+                                <option value="<?php echo $proj['id']; ?>" 
+                                        <?php echo ($log && $log['project_id'] == $proj['id']) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($proj['project_name']); ?> 
+                                    (<?php echo htmlspecialchars($proj['customer_name']); ?>)
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="log_details" class="form-label">Log Details</label>
-                        <div id="editor" style="height: 300px;"><?php echo $log ? $log['log_details'] : ''; ?></div>
-                        <input type="hidden" name="log_details" id="log_details">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="image" class="form-label">Screenshot/Image</label>
-                        <?php if ($log && $log['image_path']): ?>
-                            <div class="mb-2">
-                                <img src="<?php echo htmlspecialchars($log['image_path']); ?>" 
-                                     alt="Current Image" class="img-fluid" style="max-height: 200px;">
-                            </div>
-                        <?php endif; ?>
-                        <input type="file" class="form-control" id="image" name="image" accept="image/*">
-                    </div>
-                    
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <?php echo $log ? 'Update' : 'Create'; ?> Log
-                        </button>
-                        <a href="project-details.php?id=<?php echo $projectId; ?>#seo-logs" 
-                           class="btn btn-secondary">Cancel</a>
-                    </div>
-                </form>
-            </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Log Type -->
+                <div class="mb-3">
+                    <label for="log_type" class="form-label">Log Type</label>
+                    <select name="log_type" id="log_type" class="form-select" required>
+                        <option value="">Select Type</option>
+                        <?php foreach (SEO_LOG_TYPES as $type): ?>
+                            <option value="<?php echo $type; ?>" 
+                                    <?php echo ($log && $log['log_type'] === $type) ? 'selected' : ''; ?>>
+                                <?php echo ucfirst($type); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- Log Date -->
+                <div class="mb-3">
+                    <label for="log_date" class="form-label">Log Date</label>
+                    <input type="date" name="log_date" id="log_date" class="form-control" 
+                           value="<?php echo $log ? $log['log_date'] : date('Y-m-d'); ?>" required>
+                </div>
+
+                <!-- Log Details -->
+                <div class="mb-3">
+                    <label for="log_details" class="form-label">Details</label>
+                    <div id="editor" style="height: 200px;"><?php 
+                        echo $log ? $log['log_details'] : ''; 
+                    ?></div>
+                    <input type="hidden" name="log_details" id="log_details">
+                </div>
+
+                <!-- Image Upload -->
+                <div class="mb-3">
+                    <label for="log_image" class="form-label">
+                        Attach Image <?php echo $log && $log['image_path'] ? '(will replace existing)' : ''; ?>
+                    </label>
+                    <input type="file" name="log_image" id="log_image" class="form-control" 
+                           accept="image/*">
+                    <?php if ($log && $log['image_path']): ?>
+                        <div class="mt-2">
+                            <img src="<?php echo htmlspecialchars($log['image_path']); ?>" 
+                                 alt="Current Image" class="img-thumbnail" style="max-height: 200px;">
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a href="<?php 
+                        echo $project ? 
+                            "project-details.php?id={$project['id']}#seo-logs" : 
+                            "projects.php"; 
+                    ?>" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <?php echo $log ? 'Update Log' : 'Add Log'; ?>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

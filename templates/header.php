@@ -29,6 +29,8 @@ $appName = $settings->get('app_name', 'SEO Dashboard');
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     
     <!-- Custom CSS -->
     <link href="assets/css/style.css" rel="stylesheet">
@@ -47,26 +49,51 @@ $appName = $settings->get('app_name', 'SEO Dashboard');
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo $currentPage === 'index' ? 'active' : ''; ?>" 
-                           href="index.php">Dashboard</a>
-                    </li>
+                    <?php if (isAdmin()): ?>
+                    <!-- Admin Navigation -->
                     <li class="nav-item">
                         <a class="nav-link <?php echo $currentPage === 'customers' ? 'active' : ''; ?>" 
-                           href="customers.php">Customers</a>
+                           href="customers.php">
+                           <i class="bi bi-building me-1"></i>
+                           Customers
+                        </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?php echo $currentPage === 'projects' ? 'active' : ''; ?>" 
-                           href="projects.php">Projects</a>
+                           href="projects.php">
+                           <i class="bi bi-kanban me-1"></i>
+                           All Projects
+                        </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?php echo $currentPage === 'seo_logs' ? 'active' : ''; ?>" 
-                           href="seo_logs.php">SEO Logs</a>
+                           href="seo_logs.php">
+                           <i class="bi bi-journal-text me-1"></i>
+                           All SEO Logs
+                        </a>
                     </li>
-                    <?php if (isAdmin()): ?>
                     <li class="nav-item">
                         <a class="nav-link <?php echo $currentPage === 'users' ? 'active' : ''; ?>" 
-                           href="users.php">Users</a>
+                           href="users.php">
+                           <i class="bi bi-people me-1"></i>
+                           Users
+                        </a>
+                    </li>
+                    <?php else: ?>
+                    <!-- SEO Provider Navigation -->
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo $currentPage === 'projects' ? 'active' : ''; ?>" 
+                           href="projects.php">
+                           <i class="bi bi-kanban me-1"></i>
+                           My Projects
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo $currentPage === 'seo_logs' ? 'active' : ''; ?>" 
+                           href="seo_logs.php">
+                           <i class="bi bi-journal-text me-1"></i>
+                           SEO Logs
+                        </a>
                     </li>
                     <?php endif; ?>
                 </ul>
@@ -74,18 +101,66 @@ $appName = $settings->get('app_name', 'SEO Dashboard');
                     <?php if (isAdmin()): ?>
                     <li class="nav-item">
                         <a class="nav-link <?php echo $currentPage === 'settings' ? 'active' : ''; ?>" 
-                           href="settings.php">Settings</a>
+                           href="settings.php">
+                           <i class="bi bi-gear me-1"></i>
+                           Settings
+                        </a>
                     </li>
                     <?php endif; ?>
                     <li class="nav-item">
-                        <span class="nav-link">Welcome, <?php echo htmlspecialchars($_SESSION['user_name']); ?></span>
+                        <span class="nav-link">
+                            <i class="bi bi-person-circle me-1"></i>
+                            <?php echo htmlspecialchars($_SESSION['user_name']); ?>
+                        </span>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="logout.php">Logout</a>
+                        <a class="nav-link" href="logout.php">
+                            <i class="bi bi-box-arrow-right me-1"></i>
+                            Logout
+                        </a>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
     
-    <div class="container mt-4"> 
+    <div class="container mt-4">
+
+<style>
+.navbar {
+    padding: 0.8rem 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-brand {
+    font-weight: 600;
+    font-size: 1.3rem;
+}
+
+.nav-link {
+    padding: 0.5rem 1rem !important;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+    background-color: rgba(255,255,255,0.1);
+    border-radius: 4px;
+}
+
+.nav-link.active {
+    background-color: rgba(255,255,255,0.2);
+    border-radius: 4px;
+}
+
+.navbar-nav .nav-item {
+    margin: 0 0.2rem;
+}
+
+.bi {
+    font-size: 1.1rem;
+    vertical-align: -2px;
+}
+</style>
+</body>
+</html> 

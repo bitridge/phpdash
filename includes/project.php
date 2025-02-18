@@ -159,4 +159,66 @@ function uploadProjectLogo($file) {
 
 function getCustomerProjects($customerId) {
     return getProjects(1, PHP_INT_MAX, $customerId);
+}
+
+function getProjectsByProvider($userId, $page = 1, $perPage = 10) {
+    $conn = getDbConnection();
+    
+    // Calculate offset
+    $offset = ($page - 1) * $perPage;
+    
+    // Get total count
+    $countQuery = "SELECT COUNT(DISTINCT p.id) as total 
+                   FROM projects p 
+                   JOIN customer_users cu ON p.customer_id = cu.customer_id 
+                   WHERE cu.user_id = $userId";
+                   
+    $countResult = $conn->query($countQuery);
+    $totalCount = $countResult->fetch_assoc()['total'];
+    
+    // Get projects
+    $query = "SELECT DISTINCT p.*, c.name as customer_name, c.company_name, u.name as created_by_name 
+              FROM projects p 
+              JOIN customers c ON p.customer_id = c.id 
+              LEFT JOIN users u ON p.created_by = u.id 
+              JOIN customer_users cu ON c.id = cu.customer_id 
+              WHERE cu.user_id = $userId 
+              ORDER BY p.created_at DESC 
+              LIMIT $offset, $perPage";
+              
+    $result = $conn->query($query);
+    
+    $projects = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $projects[] = $row;
+        }
+    }
+    
+    return [
+        'projects' => $projects,
+        'total' => $totalCount,
+        'pages' => ceil($totalCount / $perPage)
+    ];
+}
+
+// Add this function to check if a user has access to a project
+function canAccessProject($projectId, $userId) {
+    $conn = getDbConnection();
+    
+    // If user is admin, they have access to all projects
+    if (isAdmin()) {
+        return true;
+    }
+    
+    $projectId = (int)$projectId;
+    $userId = (int)$userId;
+    
+    // Check if the user is assigned to the project's customer
+    $query = "SELECT 1 FROM projects p 
+              JOIN customer_users cu ON p.customer_id = cu.customer_id 
+              WHERE p.id = $projectId AND cu.user_id = $userId";
+              
+    $result = $conn->query($query);
+    return $result && $result->num_rows > 0;
 } 
