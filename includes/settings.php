@@ -86,4 +86,74 @@ class Settings {
         
         return false;
     }
+
+    public function createDatabaseBackup() {
+        $backupDir = __DIR__ . '/../uploads/backups/';
+        if (!file_exists($backupDir)) {
+            mkdir($backupDir, 0777, true);
+        }
+
+        $tables = [];
+        $result = $this->conn->query('SHOW TABLES');
+        while ($row = $result->fetch_row()) {
+            $tables[] = $row[0];
+        }
+
+        $backup = "";
+        
+        // Add SQL header with timestamp
+        $backup .= "-- Database Backup\n";
+        $backup .= "-- Generated: " . date('Y-m-d H:i:s') . "\n";
+        $backup .= "-- Server version: " . $this->conn->server_info . "\n\n";
+        
+        // Add SET statements for proper handling
+        $backup .= "SET FOREIGN_KEY_CHECKS=0;\n";
+        $backup .= "SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';\n";
+        $backup .= "SET time_zone = '+00:00';\n\n";
+
+        foreach ($tables as $table) {
+            // Get create table statement
+            $result = $this->conn->query('SHOW CREATE TABLE ' . $table);
+            $row = $result->fetch_row();
+            $backup .= "\n\n" . $row[1] . ";\n\n";
+            
+            // Get table data
+            $result = $this->conn->query('SELECT * FROM ' . $table);
+            while ($row = $result->fetch_assoc()) {
+                $backup .= "INSERT INTO `$table` VALUES (";
+                $values = [];
+                foreach ($row as $value) {
+                    $values[] = $value === null ? 'NULL' : "'" . $this->conn->real_escape_string($value) . "'";
+                }
+                $backup .= implode(', ', $values);
+                $backup .= ");\n";
+            }
+            $backup .= "\n";
+        }
+
+        // Add footer
+        $backup .= "\nSET FOREIGN_KEY_CHECKS=1;\n";
+        
+        // Create backup file
+        $filename = 'backup_' . date('Y-m-d_H-i-s') . '.sql';
+        $backupPath = $backupDir . $filename;
+        file_put_contents($backupPath, $backup);
+
+        // Create ZIP archive
+        $zipFilename = 'backup_' . date('Y-m-d_H-i-s') . '.zip';
+        $zipPath = $backupDir . $zipFilename;
+        
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath, ZipArchive::CREATE) === TRUE) {
+            $zip->addFile($backupPath, $filename);
+            $zip->close();
+            
+            // Delete the SQL file, keeping only the ZIP
+            unlink($backupPath);
+            
+            return $zipPath;
+        }
+        
+        return false;
+    }
 } 

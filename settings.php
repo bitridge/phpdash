@@ -44,6 +44,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         $success = 'Company settings updated successfully';
+    } elseif (isset($_POST['create_backup'])) {
+        // Handle database backup
+        $backupPath = $settings->createDatabaseBackup();
+        if ($backupPath) {
+            // Stream the file to the user
+            header('Content-Type: application/zip');
+            header('Content-Disposition: attachment; filename="' . basename($backupPath) . '"');
+            header('Content-Length: ' . filesize($backupPath));
+            readfile($backupPath);
+            unlink($backupPath); // Delete the file after download
+            exit();
+        } else {
+            $error = 'Failed to create backup';
+        }
     }
 }
 
@@ -84,6 +98,11 @@ include 'templates/header.php';
             <li class="nav-item">
                 <a class="nav-link" id="company-tab" data-bs-toggle="tab" href="#company" role="tab">
                     Company Details
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="backup-tab" data-bs-toggle="tab" href="#backup" role="tab">
+                    Database Backup
                 </a>
             </li>
         </ul>
@@ -172,6 +191,33 @@ include 'templates/header.php';
                             </div>
                             
                             <button type="submit" class="btn btn-primary">Save Company Details</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Backup -->
+            <div class="tab-pane fade" id="backup" role="tabpanel">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Database Backup</h5>
+                        <p class="card-text">
+                            Create and download a backup of your database. The backup will include all tables and data in a compressed ZIP file.
+                        </p>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> 
+                            The backup file will contain:
+                            <ul class="mb-0">
+                                <li>Complete database structure</li>
+                                <li>All table data</li>
+                                <li>Timestamp of backup creation</li>
+                            </ul>
+                        </div>
+                        <form method="POST">
+                            <input type="hidden" name="create_backup" value="1">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-download"></i> Create & Download Backup
+                            </button>
                         </form>
                     </div>
                 </div>
