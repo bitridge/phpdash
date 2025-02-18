@@ -1,10 +1,27 @@
+# Enable rewrite engine
 RewriteEngine On
+
+# Set the base directory - uncomment and modify if the app is in a subdirectory
+# RewriteBase /
 
 # Protect sensitive files
 <FilesMatch "^\.">
     Order allow,deny
     Deny from all
 </FilesMatch>
+
+# Protect sensitive directories
+<FilesMatch "(^|/)\.(git|env|config)">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Ensure direct access to existing files/directories
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Route all other requests to the requested PHP file
+RewriteRule ^(.+)$ $1.php [L,QSA]
 
 # PHP error handling
 php_flag display_errors on
@@ -27,6 +44,7 @@ AddDefaultCharset UTF-8
     Header set X-XSS-Protection "1; mode=block"
     Header set X-Frame-Options "SAMEORIGIN"
     Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data:; img-src 'self' https: data:; font-src 'self' https: data:;"
 </IfModule>
 
 # Cache control
@@ -39,4 +57,9 @@ AddDefaultCharset UTF-8
     ExpiresByType image/svg+xml "access plus 1 year"
     ExpiresByType text/css "access plus 1 month"
     ExpiresByType application/javascript "access plus 1 month"
-</IfModule> 
+</IfModule>
+
+# Ensure PHP files are handled by PHP engine
+<FilesMatch "\.php$">
+    SetHandler application/x-httpd-php
+</FilesMatch> 
