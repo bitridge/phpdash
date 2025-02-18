@@ -14,7 +14,7 @@ $user = null;
 if (isset($_GET['id'])) {
     $user = getUser($_GET['id']);
     if (!$user) {
-        header('Location: /users');
+        header('Location: users.php');
         exit();
     }
 }
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Create new user
             $result = createUser($data);
             if ($result['success']) {
-                header('Location: /users');
+                header('Location: users.php');
                 exit();
             } else {
                 $error = $result['message'];
@@ -77,7 +77,7 @@ include 'templates/header.php';
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2 class="card-title mb-0"><?php echo $user ? 'Edit' : 'Add'; ?> User</h2>
-                    <a href="/users" class="btn btn-outline-secondary">
+                    <a href="users.php" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-left"></i> Back to Users
                     </a>
                 </div>

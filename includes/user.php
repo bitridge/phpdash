@@ -44,26 +44,46 @@ function updateUser($id, $data) {
     $conn = getDbConnection();
     
     $id = (int)$id;
-    $name = $conn->real_escape_string($data['name']);
-    $email = $conn->real_escape_string($data['email']);
-    $role = $conn->real_escape_string($data['role']);
+    $updates = [];
     
-    // Check if email exists for other users
-    $checkQuery = "SELECT id FROM users WHERE email = '$email' AND id != $id";
-    $result = $conn->query($checkQuery);
-    if ($result && $result->num_rows > 0) {
-        return ['success' => false, 'message' => 'Email already exists'];
+    // Only update fields that are provided
+    if (isset($data['name'])) {
+        $name = $conn->real_escape_string(trim($data['name']));
+        $updates[] = "name = '$name'";
     }
     
-    $query = "UPDATE users SET name = '$name', email = '$email', role = '$role'";
+    if (isset($data['email'])) {
+        $email = $conn->real_escape_string(trim($data['email']));
+        // Check if email exists for other users
+        $checkQuery = "SELECT id FROM users WHERE email = '$email' AND id != $id";
+        $result = $conn->query($checkQuery);
+        if ($result && $result->num_rows > 0) {
+            return ['success' => false, 'message' => 'Email already exists'];
+        }
+        $updates[] = "email = '$email'";
+    }
+    
+    if (isset($data['role'])) {
+        $role = $conn->real_escape_string(trim($data['role']));
+        // Validate role
+        if (!in_array($role, ['admin', 'seo_provider'])) {
+            return ['success' => false, 'message' => 'Invalid role'];
+        }
+        $updates[] = "role = '$role'";
+    }
     
     // Update password if provided
     if (!empty($data['password'])) {
         $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
-        $query .= ", password = '$hashedPassword'";
+        $updates[] = "password = '$hashedPassword'";
     }
     
-    $query .= " WHERE id = $id";
+    // If no fields to update, return success
+    if (empty($updates)) {
+        return ['success' => true];
+    }
+    
+    $query = "UPDATE users SET " . implode(', ', $updates) . " WHERE id = $id";
     
     if ($conn->query($query)) {
         return ['success' => true];
