@@ -24,10 +24,13 @@
             font-weight: bold;
             margin-bottom: 10px;
             color: #2c3e50;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #3498db;
         }
         .report-title {
             font-size: 24px;
             color: #34495e;
+            margin-top: 20px;
             margin-bottom: 20px;
         }
         .section {
@@ -151,7 +154,7 @@
 
     <!-- SEO Logs -->
     <?php if (!empty($report['logs'])): ?>
-        <div class="section page-break">
+        <div class="section">
             <h2 class="section-title">SEO Activity Log</h2>
             <?php foreach ($report['logs'] as $log): ?>
                 <div class="log-entry">
