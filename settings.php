@@ -116,339 +116,137 @@ include 'templates/header.php';
 
 <div class="row">
     <div class="col-md-12">
-        <!-- Settings Tabs -->
+        <!-- Nav tabs -->
         <ul class="nav nav-tabs mb-4" id="settingsTabs" role="tablist">
-            <li class="nav-item">
-                <a class="nav-link active" id="app-tab" data-bs-toggle="tab" href="#app" role="tab">
-                    Application Settings
-                </a>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
+                    <i class="bi bi-gear me-1"></i> General Settings
+                </button>
             </li>
-            <li class="nav-item">
-                <a class="nav-link" id="company-tab" data-bs-toggle="tab" href="#company" role="tab">
-                    Company Details
-                </a>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="email-tab" data-bs-toggle="tab" data-bs-target="#email" type="button" role="tab">
+                    <i class="bi bi-envelope me-1"></i> Email Settings
+                </button>
             </li>
-            <li class="nav-item">
-                <a class="nav-link" id="smtp-tab" data-bs-toggle="tab" href="#smtp" role="tab">
-                    Email Settings
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="backup-tab" data-bs-toggle="tab" href="#backup" role="tab">
-                    Database Backup
-                </a>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="timezone-tab" data-bs-toggle="tab" data-bs-target="#timezone" type="button" role="tab">
+                    <i class="bi bi-clock me-1"></i> Timezone & Date
+                </button>
             </li>
         </ul>
         
-        <!-- Tab Content -->
-        <div class="tab-content" id="settingsTabContent">
-            <!-- Application Settings -->
-            <div class="tab-pane fade show active" id="app" role="tabpanel">
+        <!-- Tab content -->
+        <div class="tab-content">
+            <!-- General Settings Tab -->
+            <div class="tab-pane fade show active" id="general" role="tabpanel">
                 <div class="card">
                     <div class="card-body">
+                        <h5 class="card-title">General Settings</h5>
                         <form method="POST" enctype="multipart/form-data">
-                            <input type="hidden" name="app_settings" value="1">
+                            <input type="hidden" name="settings_group" value="general">
                             
                             <div class="mb-3">
                                 <label for="app_name" class="form-label">Application Name</label>
-                                <input type="text" class="form-control" id="app_name" name="app_name" required
+                                <input type="text" class="form-control" id="app_name" name="app_name" 
                                        value="<?php echo htmlspecialchars($settings->get('app_name', 'SEO Dashboard')); ?>">
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="timezone" class="form-label">Timezone</label>
-                                <select class="form-select" id="timezone" name="timezone">
-                                    <?php
-                                    $current_timezone = $settings->get('timezone', 'UTC');
-                                    $timezones = DateTimeZone::listIdentifiers();
-                                    foreach ($timezones as $timezone) {
-                                        $selected = ($timezone === $current_timezone) ? 'selected' : '';
-                                        echo "<option value=\"$timezone\" $selected>$timezone</option>";
-                                    }
-                                    ?>
-                                </select>
-                                <div class="form-text">Select the timezone for your application</div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="date_format" class="form-label">Date Format</label>
-                                <select class="form-select" id="date_format" name="date_format">
-                                    <?php
-                                    $current_date_format = $settings->get('date_format', 'Y-m-d');
-                                    $date_formats = [
-                                        'Y-m-d' => date('Y-m-d'),
-                                        'd/m/Y' => date('d/m/Y'),
-                                        'm/d/Y' => date('m/d/Y'),
-                                        'F j, Y' => date('F j, Y'),
-                                        'j F Y' => date('j F Y'),
-                                        'd-m-Y' => date('d-m-Y'),
-                                    ];
-                                    foreach ($date_formats as $format => $example) {
-                                        $selected = ($format === $current_date_format) ? 'selected' : '';
-                                        echo "<option value=\"$format\" $selected>$example</option>";
-                                    }
-                                    ?>
-                                </select>
-                                <div class="form-text">Choose how dates should be displayed</div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="time_format" class="form-label">Time Format</label>
-                                <select class="form-select" id="time_format" name="time_format">
-                                    <?php
-                                    $current_time_format = $settings->get('time_format', 'H:i:s');
-                                    $time_formats = [
-                                        'H:i:s' => date('H:i:s'),
-                                        'H:i' => date('H:i'),
-                                        'h:i:s A' => date('h:i:s A'),
-                                        'h:i A' => date('h:i A'),
-                                        'g:i a' => date('g:i a'),
-                                    ];
-                                    foreach ($time_formats as $format => $example) {
-                                        $selected = ($format === $current_time_format) ? 'selected' : '';
-                                        echo "<option value=\"$format\" $selected>$example</option>";
-                                    }
-                                    ?>
-                                </select>
-                                <div class="form-text">Choose how times should be displayed</div>
                             </div>
                             
                             <div class="mb-3">
                                 <label for="app_logo" class="form-label">Application Logo</label>
                                 <?php if ($logo = $settings->get('app_logo')): ?>
                                     <div class="mb-2">
-                                        <img src="<?php echo htmlspecialchars($logo); ?>" 
-                                             alt="Current Logo" style="max-height: 100px;">
+                                        <img src="<?php echo htmlspecialchars($logo); ?>" alt="Current Logo" style="max-height: 50px;">
                                     </div>
                                 <?php endif; ?>
                                 <input type="file" class="form-control" id="app_logo" name="app_logo" accept="image/*">
                             </div>
                             
-                            <button type="submit" class="btn btn-primary">Save Application Settings</button>
+                            <button type="submit" class="btn btn-primary">Save General Settings</button>
                         </form>
                     </div>
                 </div>
             </div>
             
-            <!-- Company Details -->
-            <div class="tab-pane fade" id="company" role="tabpanel">
+            <!-- Email Settings Tab -->
+            <div class="tab-pane fade" id="email" role="tabpanel">
                 <div class="card">
                     <div class="card-body">
+                        <h5 class="card-title">Email Settings</h5>
                         <form method="POST">
-                            <input type="hidden" name="company_settings" value="1">
-                            
-                            <div class="mb-3">
-                                <label for="company_name" class="form-label">Company Name</label>
-                                <input type="text" class="form-control" id="company_name" name="company_name" required
-                                       value="<?php echo htmlspecialchars($settings->get('company_name', '')); ?>">
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="company_address" class="form-label">Address</label>
-                                <textarea class="form-control" id="company_address" name="company_address" rows="3"><?php 
-                                    echo htmlspecialchars($settings->get('company_address', '')); 
-                                ?></textarea>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="company_email" class="form-label">Email</label>
-                                        <input type="email" class="form-control" id="company_email" name="company_email"
-                                               value="<?php echo htmlspecialchars($settings->get('company_email', '')); ?>">
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="company_phone" class="form-label">Phone</label>
-                                        <input type="tel" class="form-control" id="company_phone" name="company_phone"
-                                               value="<?php echo htmlspecialchars($settings->get('company_phone', '')); ?>">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="company_url" class="form-label">Website URL</label>
-                                <input type="url" class="form-control" id="company_url" name="company_url"
-                                       value="<?php echo htmlspecialchars($settings->get('company_url', '')); ?>">
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="company_contact_email" class="form-label">Contact Email</label>
-                                <input type="email" class="form-control" id="company_contact_email" name="company_contact_email"
-                                       value="<?php echo htmlspecialchars($settings->get('company_contact_email', '')); ?>">
-                                <small class="text-muted">This email will be used for system notifications and contact forms.</small>
-                            </div>
-                            
-                            <button type="submit" class="btn btn-primary">Save Company Details</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SMTP Settings -->
-            <div class="tab-pane fade" id="smtp" role="tabpanel">
-                <div class="card">
-                    <div class="card-body">
-                        <form method="POST" name="smtp_settings">
-                            <input type="hidden" name="smtp_settings" value="1">
+                            <input type="hidden" name="settings_group" value="email">
                             
                             <div class="mb-3">
                                 <label for="mail_server_type" class="form-label">Mail Server Type</label>
                                 <select class="form-select" id="mail_server_type" name="mail_server_type">
-                                    <option value="smtp" <?php echo $settings->get('mail_server_type', 'smtp') === 'smtp' ? 'selected' : ''; ?>>External SMTP Server</option>
-                                    <option value="local" <?php echo $settings->get('mail_server_type', 'smtp') === 'local' ? 'selected' : ''; ?>>Local Mail Server</option>
+                                    <option value="smtp" <?php echo $settings->get('mail_server_type') === 'smtp' ? 'selected' : ''; ?>>SMTP Server</option>
+                                    <option value="local" <?php echo $settings->get('mail_server_type') === 'local' ? 'selected' : ''; ?>>Local Mail Server</option>
                                 </select>
-                                <div class="form-text">Choose between external SMTP server or local mail server (PHP mail function)</div>
                             </div>
                             
-                            <div id="smtp-settings" class="<?php echo $settings->get('mail_server_type', 'smtp') === 'local' ? 'd-none' : ''; ?>">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="smtp_host" class="form-label">SMTP Host</label>
-                                        <input type="text" class="form-control" id="smtp_host" name="smtp_host"
-                                               value="<?php echo htmlspecialchars($settings->get('smtp_host', '')); ?>"
-                                               placeholder="e.g., smtp.gmail.com">
-                                    </div>
-                                    
-                                    <div class="col-md-6">
-                                        <label for="smtp_port" class="form-label">SMTP Port</label>
-                                        <input type="number" class="form-control" id="smtp_port" name="smtp_port"
-                                               value="<?php echo htmlspecialchars($settings->get('smtp_port', '587')); ?>"
-                                               placeholder="587">
-                                    </div>
+                            <div id="smtp_settings">
+                                <div class="mb-3">
+                                    <label for="smtp_host" class="form-label">SMTP Host</label>
+                                    <input type="text" class="form-control" id="smtp_host" name="smtp_host" 
+                                           value="<?php echo htmlspecialchars($settings->get('smtp_host', '')); ?>">
                                 </div>
                                 
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="smtp_username" class="form-label">SMTP Username</label>
-                                        <input type="text" class="form-control" id="smtp_username" name="smtp_username"
-                                               value="<?php echo htmlspecialchars($settings->get('smtp_username', '')); ?>"
-                                               placeholder="your-email@example.com">
-                                    </div>
-                                    
-                                    <div class="col-md-6">
-                                        <label for="smtp_password" class="form-label">SMTP Password</label>
-                                        <input type="password" class="form-control" id="smtp_password" name="smtp_password"
-                                               placeholder="Leave blank to keep existing password">
-                                        <small class="text-muted">For Gmail, use an App Password if 2FA is enabled.</small>
-                                    </div>
+                                <div class="mb-3">
+                                    <label for="smtp_port" class="form-label">SMTP Port</label>
+                                    <input type="number" class="form-control" id="smtp_port" name="smtp_port" 
+                                           value="<?php echo htmlspecialchars($settings->get('smtp_port', '587')); ?>">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="smtp_username" class="form-label">SMTP Username</label>
+                                    <input type="text" class="form-control" id="smtp_username" name="smtp_username" 
+                                           value="<?php echo htmlspecialchars($settings->get('smtp_username', '')); ?>">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="smtp_password" class="form-label">SMTP Password</label>
+                                    <input type="password" class="form-control" id="smtp_password" name="smtp_password" 
+                                           placeholder="Leave blank to keep current password">
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label for="smtp_encryption" class="form-label">Encryption</label>
                                     <select class="form-select" id="smtp_encryption" name="smtp_encryption">
-                                        <option value="tls" <?php echo $settings->get('smtp_encryption', 'tls') === 'tls' ? 'selected' : ''; ?>>TLS</option>
-                                        <option value="ssl" <?php echo $settings->get('smtp_encryption', 'tls') === 'ssl' ? 'selected' : ''; ?>>SSL</option>
-                                        <option value="none" <?php echo $settings->get('smtp_encryption', 'tls') === 'none' ? 'selected' : ''; ?>>None</option>
+                                        <option value="tls" <?php echo $settings->get('smtp_encryption') === 'tls' ? 'selected' : ''; ?>>TLS</option>
+                                        <option value="ssl" <?php echo $settings->get('smtp_encryption') === 'ssl' ? 'selected' : ''; ?>>SSL</option>
+                                        <option value="none" <?php echo $settings->get('smtp_encryption') === 'none' ? 'selected' : ''; ?>>None</option>
                                     </select>
                                 </div>
                             </div>
                             
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="smtp_from_email" class="form-label">From Email</label>
-                                    <input type="email" class="form-control" id="smtp_from_email" name="smtp_from_email"
-                                           value="<?php echo htmlspecialchars($settings->get('smtp_from_email', '')); ?>"
-                                           placeholder="noreply@yourdomain.com">
-                                </div>
-                                
-                                <div class="col-md-6">
-                                    <label for="smtp_from_name" class="form-label">From Name</label>
-                                    <input type="text" class="form-control" id="smtp_from_name" name="smtp_from_name"
-                                           value="<?php echo htmlspecialchars($settings->get('smtp_from_name', 'SEO Dashboard')); ?>"
-                                           placeholder="SEO Dashboard">
-                                </div>
+                            <div class="mb-3">
+                                <label for="smtp_from_email" class="form-label">From Email Address</label>
+                                <input type="email" class="form-control" id="smtp_from_email" name="smtp_from_email" 
+                                       value="<?php echo htmlspecialchars($settings->get('smtp_from_email', '')); ?>">
                             </div>
                             
-                            <div class="d-flex justify-content-between">
-                                <button type="submit" class="btn btn-primary">Save Email Settings</button>
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-info" id="testSmtp">Test Connection</button>
-                                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#testEmailModal">Send Test Email</button>
-                                </div>
+                            <div class="mb-3">
+                                <label for="smtp_from_name" class="form-label">From Name</label>
+                                <input type="text" class="form-control" id="smtp_from_name" name="smtp_from_name" 
+                                       value="<?php echo htmlspecialchars($settings->get('smtp_from_name', 'SEO Dashboard')); ?>">
                             </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Test Email Modal -->
-            <div class="modal fade" id="testEmailModal" tabindex="-1" aria-labelledby="testEmailModalLabel" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="testEmailModalLabel">Send Test Email</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="testEmailForm" onsubmit="return false;">
-                                <div class="mb-3">
-                                    <label for="test_email" class="form-label">Recipient Email</label>
-                                    <input type="email" class="form-control" id="test_email" name="test_email" required
-                                           value="<?php echo htmlspecialchars($_SESSION['user_email']); ?>">
-                                </div>
-                                <div class="mb-3">
-                                    <label for="test_subject" class="form-label">Subject</label>
-                                    <input type="text" class="form-control" id="test_subject" name="test_subject" 
-                                           value="Test Email from SEO Dashboard" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="test_message" class="form-label">Message</label>
-                                    <textarea class="form-control" id="test_message" name="test_message" rows="3" required>This is a test email from your SEO Dashboard application.</textarea>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-primary" id="sendTestEmail">Send Test Email</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Database Backup -->
-            <div class="tab-pane fade" id="backup" role="tabpanel">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Database Backup</h5>
-                        <p class="card-text">
-                            Create and download a backup of your database. The backup will include all tables and data in a compressed ZIP file.
-                        </p>
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i> 
-                            The backup file will contain:
-                            <ul class="mb-0">
-                                <li>Complete database structure</li>
-                                <li>All table data</li>
-                                <li>Timestamp of backup creation</li>
-                            </ul>
-                        </div>
-                        <form method="POST">
-                            <input type="hidden" name="create_backup" value="1">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-download"></i> Create & Download Backup
+                            
+                            <button type="submit" class="btn btn-primary">Save Email Settings</button>
+                            
+                            <button type="button" class="btn btn-info ms-2" id="testEmailBtn">
+                                Test Email Settings
                             </button>
                         </form>
                     </div>
                 </div>
             </div>
-
-            <!-- Timezone Settings -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#timezoneSettings">
-                            <i class="bi bi-clock me-2"></i>Timezone & Date Settings
-                        </button>
-                    </h5>
-                </div>
-                
-                <div id="timezoneSettings" class="collapse show">
+            
+            <!-- Timezone & Date Settings Tab -->
+            <div class="tab-pane fade" id="timezone" role="tabpanel">
+                <div class="card">
                     <div class="card-body">
-                        <form method="POST" action="">
-                            <input type="hidden" name="app_settings" value="1">
+                        <h5 class="card-title">Timezone & Date Settings</h5>
+                        <form method="POST">
+                            <input type="hidden" name="settings_group" value="timezone">
                             
                             <div class="mb-3">
                                 <label for="timezone" class="form-label">Timezone</label>
@@ -456,20 +254,20 @@ include 'templates/header.php';
                                     <?php
                                     $current_timezone = $settings->get('timezone', 'UTC');
                                     $timezones = DateTimeZone::listIdentifiers();
-                                    foreach ($timezones as $timezone) {
-                                        $selected = ($timezone === $current_timezone) ? 'selected' : '';
-                                        echo "<option value=\"$timezone\" $selected>$timezone</option>";
+                                    foreach ($timezones as $tz) {
+                                        $selected = ($tz === $current_timezone) ? 'selected' : '';
+                                        echo "<option value=\"$tz\" $selected>$tz</option>";
                                     }
                                     ?>
                                 </select>
-                                <div class="form-text">Select the timezone for your application</div>
+                                <div class="form-text">Select your preferred timezone for date and time display.</div>
                             </div>
                             
                             <div class="mb-3">
                                 <label for="date_format" class="form-label">Date Format</label>
                                 <select class="form-select" id="date_format" name="date_format">
                                     <?php
-                                    $current_date_format = $settings->get('date_format', 'Y-m-d');
+                                    $current_format = $settings->get('date_format', 'Y-m-d');
                                     $date_formats = [
                                         'Y-m-d' => date('Y-m-d'),
                                         'd/m/Y' => date('d/m/Y'),
@@ -479,12 +277,12 @@ include 'templates/header.php';
                                         'd-m-Y' => date('d-m-Y'),
                                     ];
                                     foreach ($date_formats as $format => $example) {
-                                        $selected = ($format === $current_date_format) ? 'selected' : '';
+                                        $selected = ($format === $current_format) ? 'selected' : '';
                                         echo "<option value=\"$format\" $selected>$example</option>";
                                     }
                                     ?>
                                 </select>
-                                <div class="form-text">Choose how dates should be displayed</div>
+                                <div class="form-text">Choose how dates should be displayed throughout the application.</div>
                             </div>
                             
                             <div class="mb-3">
@@ -497,7 +295,6 @@ include 'templates/header.php';
                                         'H:i' => date('H:i'),
                                         'h:i:s A' => date('h:i:s A'),
                                         'h:i A' => date('h:i A'),
-                                        'g:i a' => date('g:i a'),
                                     ];
                                     foreach ($time_formats as $format => $example) {
                                         $selected = ($format === $current_time_format) ? 'selected' : '';
@@ -505,11 +302,28 @@ include 'templates/header.php';
                                     }
                                     ?>
                                 </select>
-                                <div class="form-text">Choose how times should be displayed</div>
+                                <div class="form-text">Choose how times should be displayed throughout the application.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="show_timezone" name="show_timezone" 
+                                           <?php echo $settings->get('show_timezone', true) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="show_timezone">
+                                        Show timezone indicator with timestamps
+                                    </label>
+                                </div>
                             </div>
                             
                             <button type="submit" class="btn btn-primary">Save Timezone Settings</button>
                         </form>
+                        
+                        <div class="mt-4">
+                            <h6>Current Date/Time Preview:</h6>
+                            <div class="alert alert-info">
+                                <?php echo $settings->getCurrentDateTime(); ?>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -564,135 +378,69 @@ function showToast(message, type = 'success') {
     });
 }
 
-// Test SMTP Connection
-document.getElementById('testSmtp')?.addEventListener('click', function() {
-    const form = this.closest('form');
-    if (!form) {
-        showToast('Form not found', 'danger');
-        return;
-    }
-    const formData = new FormData(form);
-    
-    fetch('test_smtp.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            throw new TypeError("Expected JSON response but got " + contentType);
-        }
-        return response.json();
-    })
-    .then(data => {
-        showToast(data.message, data.success ? 'success' : 'danger');
-        console.log('Debug info:', data.debug);
-    })
-    .catch(error => {
-        showToast('Failed to test connection: ' + error.message, 'danger');
-        console.error('Error:', error);
-    });
+// Toggle SMTP settings based on mail server type
+document.getElementById('mail_server_type')?.addEventListener('change', function() {
+    const smtpSettings = document.getElementById('smtp_settings');
+    smtpSettings.style.display = this.value === 'smtp' ? 'block' : 'none';
 });
 
-// Send Test Email
-document.getElementById('sendTestEmail')?.addEventListener('click', function() {
-    const smtpForm = document.querySelector('form[name="smtp_settings"]');
-    const testEmailForm = document.getElementById('testEmailForm');
-    
-    if (!smtpForm || !testEmailForm) {
-        console.error('SMTP Form:', smtpForm);
-        console.error('Test Email Form:', testEmailForm);
-        showToast('Required forms not found', 'danger');
-        return;
-    }
-    
-    // Validate test email form
-    if (!testEmailForm.checkValidity()) {
-        testEmailForm.reportValidity();
-        return;
-    }
-    
-    // Create a new FormData object
-    const formData = new FormData();
-    
-    // Add SMTP settings
-    for (const pair of new FormData(smtpForm).entries()) {
-        formData.append(pair[0], pair[1]);
-    }
-    
-    // Add test email data
-    formData.append('test_email', testEmailForm.querySelector('[name="test_email"]').value);
-    formData.append('test_subject', testEmailForm.querySelector('[name="test_subject"]').value);
-    formData.append('test_message', testEmailForm.querySelector('[name="test_message"]').value);
-    formData.append('send_test_email', '1');
-    
-    // Show loading state
-    const sendButton = this;
-    const originalText = sendButton.innerHTML;
-    sendButton.disabled = true;
-    sendButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
-    
-    fetch('test_smtp.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            throw new TypeError("Expected JSON response but got " + contentType);
-        }
-        return response.json();
-    })
-    .then(data => {
-        showToast(data.message, data.success ? 'success' : 'danger');
-        if (data.success) {
-            const modal = document.getElementById('testEmailModal');
-            if (modal) {
-                bootstrap.Modal.getInstance(modal)?.hide();
-            }
-        }
-        if (data.debug) {
-            console.log('Debug info:', data.debug);
-        }
-    })
-    .catch(error => {
-        showToast('Failed to send test email: ' + error.message, 'danger');
-        console.error('Error:', error);
-    })
-    .finally(() => {
-        // Reset button state
-        sendButton.disabled = false;
-        sendButton.innerHTML = originalText;
-    });
-});
-
-// Toggle SMTP settings visibility
-document.querySelector('[name="mail_server_type"]')?.addEventListener('change', function() {
-    const smtpSettings = document.getElementById('smtp-settings');
-    if (smtpSettings) {
-        smtpSettings.style.display = this.value === 'smtp' ? 'block' : 'none';
-    }
-});
-
-// Initialize tooltips
-document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(tooltip => {
-    new bootstrap.Tooltip(tooltip);
-});
-
-// Initialize any existing mail server type selection
-const mailServerType = document.querySelector('[name="mail_server_type"]');
-if (mailServerType) {
-    const smtpSettings = document.getElementById('smtp-settings');
-    if (smtpSettings) {
+// Initialize SMTP settings visibility
+document.addEventListener('DOMContentLoaded', function() {
+    const mailServerType = document.getElementById('mail_server_type');
+    const smtpSettings = document.getElementById('smtp_settings');
+    if (mailServerType && smtpSettings) {
         smtpSettings.style.display = mailServerType.value === 'smtp' ? 'block' : 'none';
     }
+});
+
+// Test Email Settings
+document.getElementById('testEmailBtn')?.addEventListener('click', function() {
+    const testEmail = prompt('Enter email address to send test message:');
+    if (testEmail) {
+        const formData = new FormData(this.closest('form'));
+        formData.append('test_email', testEmail);
+        formData.append('test_subject', 'Test Email from SEO Dashboard');
+        formData.append('test_message', 'This is a test email from your SEO Dashboard application.');
+        
+        fetch('test_smtp.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            console.log('Debug info:', data.debug);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to test email settings. Check console for details.');
+        });
+    }
+});
+
+// Preview date/time format changes
+function updateDateTimePreview() {
+    const timezone = document.getElementById('timezone').value;
+    const dateFormat = document.getElementById('date_format').value;
+    const timeFormat = document.getElementById('time_format').value;
+    
+    fetch('ajax/get_current_time.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `timezone=${encodeURIComponent(timezone)}&date_format=${encodeURIComponent(dateFormat)}&time_format=${encodeURIComponent(timeFormat)}`
+    })
+    .then(response => response.text())
+    .then(datetime => {
+        document.querySelector('.alert-info').textContent = datetime;
+    });
 }
+
+// Add event listeners for format changes
+document.getElementById('timezone')?.addEventListener('change', updateDateTimePreview);
+document.getElementById('date_format')?.addEventListener('change', updateDateTimePreview);
+document.getElementById('time_format')?.addEventListener('change', updateDateTimePreview);
 </script>
 
 <?php include 'templates/footer.php'; ?> 
