@@ -108,6 +108,13 @@
             margin: 0 auto;
             object-fit: contain;
         }
+        .log-content {
+            max-width: 100%;
+        }
+        a {
+            color: #0066cc;
+            text-decoration: underline;
+        }
         .page-break {
             page-break-after: always;
         }
@@ -169,6 +176,9 @@
                 // Skip if we've already processed this log
                 if (in_array($log['id'], $processedLogIds)) continue;
                 $processedLogIds[] = $log['id'];
+
+                // Process log details to properly wrap URLs
+                $logDetails = $log['log_details'];
             ?>
                 <div class="log-entry">
                     <div class="log-header">
@@ -180,7 +190,7 @@
                         </span>
                     </div>
                     <div class="log-content">
-                        <?php echo $log['log_details']; ?>
+                        <?php echo $logDetails; ?>
                     </div>
                     <?php if (!empty($log['image_path']) && file_exists($log['image_path'])): ?>
                         <div class="log-image-container">
