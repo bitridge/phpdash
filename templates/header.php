@@ -19,6 +19,65 @@ if (!isset($pageTitle)) {
 
 // Get application name from settings
 $appName = $settings->get('app_name', 'SEO Dashboard');
+
+// Daily Motivational Quotes
+$quotes = [
+    "What great thing would you attempt, if you knew you could not fail. - Robert H. Schuller",
+    "It's not about money or connections. It's the willingness to outwork and outlearn everyone when it comes to your business. - Mark Cuban",
+    "Success is not final; failure is not fatal; it is the courage to continue that counts. - Winston Churchill",
+    "Don't stop when you're tired. Stop when you're done. - Wesley Snipes",
+    "Shoot for the moon. Even if you miss, you'll land among the stars. - Norman Vincent Peale",
+    "The journey of a thousand miles begins with one step. - Lao Tzu",
+    "Act as if what you do makes a difference. IT DOES. - William James",
+    "Always take another step. If this is to no avail take another, and yet another. One step at a time is not too difficult. - Og Mandino",
+    "If you can't fly, then run, if you can't run then walk, if you can't walk then crawl, but whatever you do, you have to keep moving forward. - Martin Luther King, Jr.",
+    "Much effort, much prosperity. - Euripides",
+    "Your true success in life begins only when you make the commitment to become excellent at what you do. - Brian Tracy",
+    "Much good work is lost for the lack of a little more. - Edward H. Harriman",
+    "Your biggest failure is the thing you dreamed of contributing but didn't find the guts to do. - Seth Godin",
+    "That some achieve great success, is proof to all that others can achieve it as well. - Abraham Lincoln",
+    "Never let the fear of striking out get in your way. - Babe Ruth",
+    "Hustle until you no longer need to introduce yourself. - Anonymous",
+    "The heights by great men reached and kept, were not attained by sudden flight, but they, while their companions slept, were toiling upward in the night. - Henry Wadsworth Longfellow",
+    "He who would accomplish little must sacrifice little; he who would achieve much must sacrifice much. - James Allen",
+    "If you wish to be out front, then act as if you were behind. - Lao Tzu",
+    "The key to success is failure. - Michael Jordan",
+    "Formula for success: rise early, work hard, strike oil. - J. Paul Getty",
+    "Plough deep while sluggards sleep. - Benjamin Franklin",
+    "Work hard in silence and let success be your noise. - Anonymous",
+    "Don't stop until you're proud. - Anonymous",
+    "The path to success is to take massive, determined action. - Tony Robbins",
+    "If it's important, you'll find a way. If it's not, you'll find an excuse. - Ryan Blair",
+    "Men of action are favored by the goddess of good luck. - George S. Clason",
+    "A somebody was once a nobody who wanted to and did. - John Burroughs",
+    "Man cannot discover new oceans unless he has the courage to lose sight of the shore. - Andre Gide",
+    "If you believe you can do a thing, you can do it. - Claude M. Bristol",
+    "Action is the foundational key to all success. - Pablo Picasso",
+    "Thought allied fearlessly to purpose becomes creative force. - James Allen",
+    "Run your own race. Who cares what others are doing? The only question that matters is, am I progressing? - Robin Sharma",
+    "There's not a person on my team in 16 years that has consistently beat me to the ball every play. That ain't got anything to do with talent, that's just got everything to do with effort, and nothing else. - Ray Lewis",
+    "Don't watch the clock; do what it does. Keep going. - Sam Levonson",
+    "Winners embrace hard work. They love the discipline of it, the trade-off they're making to win. Losers, on the other hand, see it as a punishment. And that's the difference. - Lou Holtz",
+    "Push yourself, because no one else is going to do it for you. - Anonymous",
+    "Life shrinks or expands in proportion to one's courage. - Anais Nin",
+    "Nothing in this world is worth having or worth doing unless it means effort, pain, difficulty. - Theodore Roosevelt",
+    "In this world you only get what you grab for. - Giovanni Boccaccio",
+    "Success means having the courage, the determination, and the will to become the person you believe you were meant to be. - George A. Sheehan",
+    "The best way to predict the future is to create it. - Peter Drucker",
+    "If you have everything seems under control, you're just not going fast enough. - Mario Andretti",
+    "Do the work. Everyone wants to be successful, but nobody wants to do the work. - Gary Vaynerchuk",
+    "Be so good they can't ignore you. - Steve Martin",
+    "Be not afraid of going slowly; be afraid only of standing still. - Chinese Proverb",
+    "When we strive to become better than we are, everything around us becomes better too. - Paulo Coelho",
+    "With self-discipline, most anything is possible. - Theodore Roosevelt",
+    "All the so-called 'secrets of success' will not work unless you do. - Anonymous",
+    "Your dreams are on the other side of your grit. - Anonymous"
+];
+
+// Get today's quote based on the day of the year (1-366)
+$dayOfYear = date('z'); // 0-365
+$quoteIndex = $dayOfYear % count($quotes);
+$todaysQuote = $quotes[$quoteIndex];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -41,7 +100,7 @@ $appName = $settings->get('app_name', 'SEO Dashboard');
         <div class="container d-flex justify-content-between align-items-center text-white">
             <small>
                 <i class="bi bi-quote me-1"></i>
-                <span id="daily-quote">Success is not final, failure is not fatal: it is the courage to continue that counts.</span>
+                <span id="daily-quote"><?php echo htmlspecialchars($todaysQuote); ?></span>
             </small>
             <small>
                 <i class="bi bi-clock me-1"></i>
