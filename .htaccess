@@ -16,12 +16,16 @@ RewriteEngine On
     Deny from all
 </FilesMatch>
 
-# Ensure direct access to existing files/directories
-RewriteCond %{REQUEST_FILENAME} !-f
+# Redirect requests without .php to include .php
 RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^([^/]+)/?$ $1.php [L]
 
-# Route all other requests to the requested PHP file
-RewriteRule ^(.+)$ $1.php [L,QSA]
+# Prevent direct access to .php files in certain directories
+<FilesMatch "^(includes|templates|migrations)/.*\.php$">
+    Order deny,allow
+    Deny from all
+</FilesMatch>
 
 # PHP error handling
 php_flag display_errors on
