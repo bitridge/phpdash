@@ -262,14 +262,14 @@ include 'templates/header.php';
                                         ?>
                                     </p>
                                 </div>
-                                <div class="text-end text-muted small">
-                                    <div>
-                                        <?php echo date('M j, Y', strtotime($log['log_date'])); ?>
-                                        <span class="ms-2">
+                                <div class="text-end text-muted">
+                                    <div class="fs-6">by <?php echo htmlspecialchars($log['user_name']); ?></div>
+                                    <div class="fs-6">
+                                        <small>
+                                            <?php echo date('M j, Y', strtotime($log['log_date'])); ?> 
                                             <?php echo date('g:i A', strtotime($log['created_at'])); ?>
-                                        </span>
+                                        </small>
                                     </div>
-                                    <div>by <?php echo htmlspecialchars($log['user_name']); ?></div>
                                 </div>
                             </div>
                         </div>
