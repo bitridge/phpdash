@@ -72,13 +72,37 @@ if (isset($_POST['sections'])) {
 }
 
 // Process selected logs
-if (isset($_POST['selected_logs'])) {
-    foreach ($_POST['selected_logs'] as $logId) {
+if (isset($_POST['selected_logs']) && is_array($_POST['selected_logs'])) {
+    $startDate = isset($_POST['start_date']) ? $_POST['start_date'] : date('Y-m-01');
+    $endDate = isset($_POST['end_date']) ? $_POST['end_date'] : date('Y-m-d');
+    
+    // Get unique log IDs and ensure they're integers
+    $selectedLogIds = array_map('intval', array_unique($_POST['selected_logs']));
+    
+    // Create a temporary array to store logs by ID to prevent duplicates
+    $logsById = [];
+    
+    foreach ($selectedLogIds as $logId) {
         $log = getSeoLog($logId);
-        if ($log) {
-            $report['logs'][] = $log;
+        // Only include logs within the date range and prevent duplicates
+        if ($log && 
+            strtotime($log['log_date']) >= strtotime($startDate) && 
+            strtotime($log['log_date']) <= strtotime($endDate) &&
+            !isset($logsById[$log['id']])) {
+            $logsById[$log['id']] = $log;
         }
     }
+    
+    // Convert to indexed array and sort by date
+    $report['logs'] = array_values($logsById);
+    usort($report['logs'], function($a, $b) {
+        $dateCompare = strtotime($b['log_date']) - strtotime($a['log_date']);
+        if ($dateCompare === 0) {
+            // If dates are the same, sort by created_at timestamp
+            return strtotime($b['created_at']) - strtotime($a['created_at']);
+        }
+        return $dateCompare;
+    });
 }
 
 // Initialize DomPDF with updated options

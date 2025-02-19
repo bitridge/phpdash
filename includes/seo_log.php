@@ -308,4 +308,32 @@ define('SEO_LOG_TYPES', [
     'Content',
     'Analytics',
     'Other'
-]); 
+]);
+
+/**
+ * Get SEO logs for a specific project within a date range
+ */
+function getSeoLogsByDateRange($projectId, $startDate, $endDate) {
+    $conn = getDbConnection();
+    $projectId = (int)$projectId;
+    $startDate = $conn->real_escape_string($startDate);
+    $endDate = $conn->real_escape_string($endDate);
+    
+    $query = "SELECT s.*, u.name as created_by_name 
+              FROM seo_logs s 
+              LEFT JOIN users u ON s.created_by = u.id 
+              WHERE s.project_id = $projectId 
+              AND s.log_date BETWEEN '$startDate' AND '$endDate'
+              ORDER BY s.log_date DESC, s.created_at DESC";
+              
+    $result = $conn->query($query);
+    
+    $logs = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $logs[] = $row;
+        }
+    }
+    
+    return $logs;
+} 

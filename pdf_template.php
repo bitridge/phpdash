@@ -156,7 +156,20 @@
     <?php if (!empty($report['logs'])): ?>
         <div class="section">
             <h2 class="section-title">SEO Activity Log</h2>
-            <?php foreach ($report['logs'] as $log): ?>
+            <?php 
+            // Sort logs by date in descending order
+            usort($report['logs'], function($a, $b) {
+                return strtotime($b['log_date']) - strtotime($a['log_date']);
+            });
+            
+            // Track unique logs by ID to prevent duplicates
+            $processedLogIds = [];
+            
+            foreach ($report['logs'] as $log):
+                // Skip if we've already processed this log
+                if (in_array($log['id'], $processedLogIds)) continue;
+                $processedLogIds[] = $log['id'];
+            ?>
                 <div class="log-entry">
                     <div class="log-header">
                         <span class="log-type" style="background-color: <?php echo getLogTypeColor($log['log_type']); ?>">
