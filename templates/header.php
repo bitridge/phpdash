@@ -90,44 +90,223 @@ $todaysQuote = $quotes[$quoteIndex];
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
-    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="assets/css/style.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-bg: #1a1f2d;
+            --secondary-bg: #2a2f3d;
+            --accent-color: #3498db;
+            --text-primary: #ffffff;
+            --text-secondary: #e1e1e1;
+            --navbar-height: 60px;
+            --quote-bar-height: 40px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Quote Bar Styles */
+        .quote-bar {
+            background-color: var(--primary-bg);
+            color: var(--text-primary);
+            height: var(--quote-bar-height);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quote-bar .container {
+            height: 100%;
+        }
+
+        .quote-content {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 80%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quote-content:hover {
+            white-space: normal;
+            position: absolute;
+            background-color: var(--primary-bg);
+            z-index: 1000;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 90%;
+        }
+
+        .datetime-display {
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        /* Navbar Styles */
+        .navbar {
+            background-color: var(--secondary-bg) !important;
+            height: var(--navbar-height);
+            padding: 0 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.4rem;
+            color: var(--text-primary) !important;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-link {
+            color: var(--text-secondary) !important;
+            padding: 0.7rem 1rem !important;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border-radius: 6px;
+            margin: 0 2px;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255,255,255,0.1);
+            color: var(--text-primary) !important;
+        }
+
+        .nav-link.active {
+            background-color: var(--accent-color) !important;
+            color: var(--text-primary) !important;
+        }
+
+        .navbar-toggler {
+            border: none;
+            padding: 0.5rem;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none;
+        }
+
+        .dropdown-menu {
+            background-color: var(--secondary-bg);
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-top: 10px;
+        }
+
+        .dropdown-item {
+            color: var(--text-secondary);
+            padding: 0.7rem 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background-color: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+        }
+
+        .dropdown-divider {
+            border-top-color: rgba(255,255,255,0.1);
+        }
+
+        /* Icons */
+        .bi {
+            font-size: 1.1rem;
+            vertical-align: -2px;
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            .quote-content {
+                font-size: 0.85rem;
+                max-width: 70%;
+            }
+
+            .datetime-display {
+                font-size: 0.85rem;
+            }
+
+            .navbar-collapse {
+                background-color: var(--secondary-bg);
+                padding: 1rem;
+                border-radius: 8px;
+                margin-top: 10px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            }
+
+            .nav-link {
+                padding: 0.8rem 1rem !important;
+            }
+
+            .dropdown-menu {
+                margin-top: 0;
+                background-color: rgba(0,0,0,0.2);
+            }
+        }
+
+        /* Main Content Container */
+        .main-container {
+            flex: 1;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        /* Card Styles */
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+    </style>
 </head>
 <body>
-    <!-- Current Date/Time Bar -->
-    <div class="bg-dark py-1">
-        <div class="container d-flex justify-content-between align-items-center text-white">
-            <small>
-                <i class="bi bi-quote me-1"></i>
+    <!-- Quote Bar -->
+    <div class="quote-bar py-2">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div class="quote-content">
+                <i class="bi bi-quote me-2"></i>
                 <span id="daily-quote"><?php echo htmlspecialchars($todaysQuote); ?></span>
-            </small>
-            <small>
-                <i class="bi bi-clock me-1"></i>
+            </div>
+            <div class="datetime-display">
+                <i class="bi bi-clock me-2"></i>
                 <span id="current-datetime">
-                    <?php 
-                    echo $settings->getCurrentDateTime(); 
-                    ?>
+                    <?php echo $settings->getCurrentDateTime(); ?>
                 </span>
-            </small>
+            </div>
         </div>
     </div>
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="index.php">
+            <a class="navbar-brand" href="index.php">
                 <?php if ($logo = $settings->get('app_logo')): ?>
-                    <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" height="30" class="me-2">
+                    <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" height="35" class="me-2">
                 <?php endif; ?>
                 <?php echo htmlspecialchars($appName); ?>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
+                <i class="bi bi-list"></i>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <?php if (isAdmin()): ?>
-                    <!-- Admin Navigation -->
                     <li class="nav-item">
                         <a class="nav-link <?php echo $currentPage === 'customers' ? 'active' : ''; ?>" 
                            href="customers.php">
@@ -157,7 +336,6 @@ $todaysQuote = $quotes[$quoteIndex];
                         </a>
                     </li>
                     <?php else: ?>
-                    <!-- SEO Provider Navigation -->
                     <li class="nav-item">
                         <a class="nav-link <?php echo $currentPage === 'projects' ? 'active' : ''; ?>" 
                            href="projects.php">
@@ -209,7 +387,9 @@ $todaysQuote = $quotes[$quoteIndex];
         </div>
     </nav>
     
-    <div class="container mt-4">
+    <div class="main-container">
+        <div class="container">
+            <div class="container mt-4">
 
 <style>
 .navbar {

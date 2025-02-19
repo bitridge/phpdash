@@ -263,7 +263,12 @@ include 'templates/header.php';
                                     </p>
                                 </div>
                                 <div class="text-end text-muted small">
-                                    <div><?php echo date('M j, Y', strtotime($log['log_date'])); ?></div>
+                                    <div>
+                                        <?php echo date('M j, Y', strtotime($log['log_date'])); ?>
+                                        <span class="ms-2">
+                                            <?php echo date('g:i A', strtotime($log['created_at'])); ?>
+                                        </span>
+                                    </div>
                                     <div>by <?php echo htmlspecialchars($log['user_name']); ?></div>
                                 </div>
                             </div>
