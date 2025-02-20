@@ -117,12 +117,13 @@ if (isset($_POST['selected_logs']) && is_array($_POST['selected_logs'])) {
     $logger->log("Total logs after processing: " . count($report['logs']), 'INFO');
     
     usort($report['logs'], function($a, $b) {
-        $dateCompare = strtotime($b['log_date']) - strtotime($a['log_date']);
-        if ($dateCompare === 0) {
+        $dateA = strtotime($a['log_date']);
+        $dateB = strtotime($b['log_date']);
+        if ($dateA === $dateB) {
             // If dates are the same, sort by created_at timestamp
             return strtotime($b['created_at']) - strtotime($a['created_at']);
         }
-        return $dateCompare;
+        return $dateB - $dateA; // Sort in descending order (newest first)
     });
     
     $logger->log("Logs after sorting: " . json_encode(array_column($report['logs'], 'id')), 'DEBUG');
