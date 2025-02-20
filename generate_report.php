@@ -136,6 +136,10 @@ include 'templates/header.php';
                                         <?php echo date('M j, Y', strtotime($log['log_date'])); ?>
                                     </label>
                                 </div>
+                                <?php 
+                                // Add debug output for each log
+                                echo "<!-- Log ID: " . $log['id'] . " -->\n";
+                                ?>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <p class="text-muted">No logs found in the selected date range</p>
@@ -412,6 +416,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize checkbox handlers on page load
     initializeCheckboxHandlers();
+
+    // Add form submission debugging
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const selectedLogs = Array.from(document.querySelectorAll('input[name="selected_logs[]"]:checked')).map(cb => cb.value);
+        console.log('Selected logs:', selectedLogs);
+    });
 });
 </script>
 

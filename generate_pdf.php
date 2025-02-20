@@ -77,56 +77,140 @@ if (isset($_POST['sections'])) {
 
 // Get selected logs
 if (isset($_POST['selected_logs']) && is_array($_POST['selected_logs'])) {
-    $startDate = isset($_POST['start_date']) ? $_POST['start_date'] : date('Y-m-01');
-    $endDate = isset($_POST['end_date']) ? $_POST['end_date'] : date('Y-m-d');
-    
-    $logger->log("Processing selected logs. Start date: $startDate, End date: $endDate", 'INFO');
-    $logger->log("Selected log IDs: " . json_encode($_POST['selected_logs']), 'DEBUG');
+    $logger->log("Raw POST data: " . json_encode($_POST), 'DEBUG');
+    $logger->log("Selected logs from POST: " . json_encode($_POST['selected_logs']), 'DEBUG');
     
     // Get unique log IDs and ensure they're integers
     $selectedLogIds = array_map('intval', array_unique($_POST['selected_logs']));
-    $logger->log("Unique log IDs after processing: " . json_encode($selectedLogIds), 'DEBUG');
+    $logger->log("Selected log IDs after processing: " . json_encode($selectedLogIds), 'DEBUG');
     
-    // Create a temporary array to store logs by ID to prevent duplicates
-    $logsById = [];
-    
-    foreach ($selectedLogIds as $logId) {
-        $log = getSeoLog($logId);
-        $logger->log("Processing log ID: $logId", 'DEBUG');
+    if (empty($selectedLogIds)) {
+        $logger->log("No log IDs selected", 'WARNING');
+    } else {
+        // Get all logs in a single query using IN clause
+        $conn = getDbConnection();
+        $idList = implode(',', $selectedLogIds);
         
-        if ($log) {
-            $logger->log("Found log: " . json_encode($log), 'DEBUG');
-            $logDate = strtotime($log['log_date']);
-            $startDateTime = strtotime($startDate);
-            $endDateTime = strtotime($endDate . ' 23:59:59'); // Include the full end date
-            
-            // Only include logs within the date range and prevent duplicates
-            if ($logDate >= $startDateTime && $logDate <= $endDateTime) {
-                $logsById[$log['id']] = $log;
-                $logger->log("Added log ID {$log['id']} to report", 'INFO');
-            } else {
-                $logger->log("Log ID {$log['id']} outside date range (date: " . date('Y-m-d', $logDate) . ")", 'WARNING');
+        // Only get the specifically selected logs, ensure uniqueness with GROUP BY
+        $query = "SELECT DISTINCT s.*, u.name as created_by_name 
+                  FROM seo_logs s 
+                  LEFT JOIN users u ON s.created_by = u.id 
+                  WHERE s.id IN ($idList)
+                  GROUP BY s.id
+                  ORDER BY s.log_date DESC, s.created_at DESC";
+                  
+        $logger->log("Executing SQL Query: " . $query, 'DEBUG');
+        $result = $conn->query($query);
+        
+        if (!$result) {
+            $logger->log("SQL Error: " . $conn->error, 'ERROR');
+        }
+        
+        $report['logs'] = [];
+        if ($result) {
+            $processedIds = []; // Track processed IDs
+            while ($log = $result->fetch_assoc()) {
+                // Convert log ID to integer for comparison
+                $logId = (int)$log['id'];
+                
+                // Double-check for duplicates using integer comparison
+                if (!in_array($logId, $processedIds, true)) {
+                    $logger->log("Retrieved log: " . json_encode($log), 'DEBUG');
+                    $report['logs'][] = $log;
+                    $processedIds[] = $logId;
+                } else {
+                    $logger->log("Skipping duplicate log ID: " . $log['id'], 'WARNING');
+                }
             }
-        } else {
-            $logger->log("Log ID $logId not found", 'WARNING');
+            
+            $logger->log("Total logs retrieved: " . count($report['logs']), 'INFO');
+            foreach ($report['logs'] as $log) {
+                $logger->log("Final log in report - ID: {$log['id']}, Type: {$log['log_type']}, Date: {$log['log_date']}", 'INFO');
+            }
         }
     }
+}
+
+function optimizeImageForPdf($imagePath) {
+    if (!file_exists($imagePath)) {
+        return false;
+    }
     
-    // Convert to indexed array and sort by date
-    $report['logs'] = array_values($logsById);
-    $logger->log("Total logs after processing: " . count($report['logs']), 'INFO');
+    $logger = ErrorLogger::getInstance();
+    $logger->log("Optimizing image for PDF: " . $imagePath, 'DEBUG');
     
-    usort($report['logs'], function($a, $b) {
-        $dateA = strtotime($a['log_date']);
-        $dateB = strtotime($b['log_date']);
-        if ($dateA === $dateB) {
-            // If dates are the same, sort by created_at timestamp
-            return strtotime($b['created_at']) - strtotime($a['created_at']);
+    // Get image info
+    $info = getimagesize($imagePath);
+    if (!$info) {
+        $logger->log("Failed to get image info: " . $imagePath, 'WARNING');
+        return false;
+    }
+    
+    // Only process PNG images
+    if ($info[2] !== IMAGETYPE_PNG) {
+        return $imagePath;
+    }
+    
+    // Create optimized version in temp directory
+    $tempDir = __DIR__ . '/tmp';
+    if (!file_exists($tempDir)) {
+        mkdir($tempDir, 0777, true);
+    }
+    
+    $optimizedPath = $tempDir . '/' . uniqid('pdf_') . '.png';
+    
+    // Load the original image
+    $originalImage = imagecreatefrompng($imagePath);
+    if (!$originalImage) {
+        $logger->log("Failed to load PNG image: " . $imagePath, 'WARNING');
+        return $imagePath;
+    }
+    
+    // Create a new true color image
+    $width = imagesx($originalImage);
+    $height = imagesy($originalImage);
+    $newImage = imagecreatetruecolor($width, $height);
+    
+    // Preserve transparency
+    imagealphablending($newImage, false);
+    imagesavealpha($newImage, true);
+    
+    // Copy and convert the image
+    imagecopy($newImage, $originalImage, 0, 0, 0, 0, $width, $height);
+    
+    // Save the optimized image
+    imagepng($newImage, $optimizedPath, 9); // Maximum compression
+    
+    // Clean up
+    imagedestroy($originalImage);
+    imagedestroy($newImage);
+    
+    $logger->log("Image optimized successfully: " . $optimizedPath, 'DEBUG');
+    return $optimizedPath;
+}
+
+// Before PDF generation, optimize images
+foreach ($report['logs'] as &$log) {
+    if (!empty($log['image_path'])) {
+        $absolutePath = realpath(__DIR__ . '/' . $log['image_path']);
+        if ($absolutePath) {
+            $optimizedPath = optimizeImageForPdf($absolutePath);
+            if ($optimizedPath) {
+                $log['image_path'] = $optimizedPath;
+            }
         }
-        return $dateB - $dateA; // Sort in descending order (newest first)
-    });
-    
-    $logger->log("Logs after sorting: " . json_encode(array_column($report['logs'], 'id')), 'DEBUG');
+    }
+}
+
+// Process project logo
+if ($project['logo_path']) {
+    $absolutePath = realpath(__DIR__ . '/' . $project['logo_path']);
+    if ($absolutePath) {
+        $optimizedPath = optimizeImageForPdf($absolutePath);
+        if ($optimizedPath) {
+            $project['logo_path'] = $optimizedPath;
+        }
+    }
 }
 
 // Initialize DomPDF with updated options
@@ -140,6 +224,10 @@ $options->set('chroot', [
     __DIR__ . '/uploads'
 ]);
 $options->setIsRemoteEnabled(true);
+
+// Verify logs are still in the report array
+$logger->log("Pre-PDF generation - Number of logs: " . count($report['logs']), 'INFO');
+$logger->log("Pre-PDF generation - Log IDs: " . json_encode(array_column($report['logs'], 'id')), 'DEBUG');
 
 $dompdf = new Dompdf($options);
 
@@ -198,6 +286,17 @@ $html = ob_get_clean();
 
 $dompdf->loadHtml($html);
 $dompdf->render();
+
+// Clean up temporary files
+$tempDir = __DIR__ . '/tmp';
+if (file_exists($tempDir)) {
+    $files = glob($tempDir . '/pdf_*.png');
+    foreach ($files as $file) {
+        if (is_file($file)) {
+            unlink($file);
+        }
+    }
+}
 
 // Generate filename
 $filename = sanitizeFilename($project['project_name'] . ' - ' . $report['title']) . '.pdf';

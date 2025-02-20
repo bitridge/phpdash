@@ -10,6 +10,14 @@ class ErrorLogger {
     private $logRetention;
     private $displayErrors;
     
+    private const LOG_LEVELS = [
+        'DEBUG' => 4,
+        'INFO' => 3,
+        'WARNING' => 2,
+        'ERROR' => 1,
+        'FATAL' => 0
+    ];
+    
     private function __construct() {
         $this->settings = Settings::getInstance();
         $this->logFile = __DIR__ . '/../logs/error.log';
@@ -48,6 +56,23 @@ class ErrorLogger {
         $retentionDays = max(1, $this->logRetention);
         $cutoffTime = time() - ($retentionDays * 24 * 60 * 60);
         
+        // Check file size
+        $maxFileSize = 10 * 1024 * 1024; // 10MB
+        $currentSize = filesize($this->logFile);
+        
+        if ($currentSize > $maxFileSize) {
+            // Rotate the log file
+            $backupFile = $this->logFile . '.' . date('Y-m-d-His');
+            rename($this->logFile, $backupFile);
+            touch($this->logFile);
+            chmod($this->logFile, 0644);
+            
+            // Remove old backup files
+            $this->removeOldBackups();
+            return;
+        }
+        
+        // Process existing logs
         $logs = file($this->logFile);
         $newLogs = [];
         
@@ -65,6 +90,26 @@ class ErrorLogger {
         }
     }
     
+    private function removeOldBackups() {
+        $pattern = $this->logFile . '.*';
+        $backupFiles = glob($pattern);
+        
+        if (!$backupFiles) {
+            return;
+        }
+        
+        // Sort files by modification time
+        usort($backupFiles, function($a, $b) {
+            return filemtime($b) - filemtime($a);
+        });
+        
+        // Keep only last 5 backup files
+        $maxBackups = 5;
+        foreach (array_slice($backupFiles, $maxBackups) as $file) {
+            unlink($file);
+        }
+    }
+    
     public static function getInstance() {
         if (self::$instance === null) {
             self::$instance = new self();
@@ -78,9 +123,24 @@ class ErrorLogger {
             return;
         }
         
-        $timestamp = date('Y-m-d H:i:s');
-        $contextStr = !empty($context) ? ' | Context: ' . json_encode($context) : '';
-        $logMessage = "[$timestamp] [$type] $message$contextStr" . PHP_EOL;
+        // Ensure message is a string
+        $message = is_string($message) ? $message : print_r($message, true);
+        
+        // Format context
+        $contextStr = empty($context) ? '' : ' | Context: ' . $this->formatContext($context);
+        
+        // Format timestamp with microseconds
+        $timestamp = $this->getFormattedTimestamp();
+        
+        // Build log message
+        $logMessage = sprintf(
+            "[%s] [%-7s] %s%s%s",
+            $timestamp,
+            strtoupper($type),
+            $message,
+            $contextStr,
+            PHP_EOL
+        );
         
         error_log($logMessage, 3, $this->logFile);
         
@@ -90,38 +150,41 @@ class ErrorLogger {
         }
     }
     
-    private function shouldLog($type) {
-        $logLevels = [
-            'DEBUG' => 4,
-            'INFO' => 3,
-            'WARNING' => 2,
-            'ERROR' => 1
-        ];
+    private function formatContext($context) {
+        if (empty($context)) {
+            return '';
+        }
         
-        $currentLevel = $logLevels[$this->logLevel] ?? 1;
-        $messageLevel = $logLevels[$type] ?? 1;
+        // Handle special cases
+        if (is_string($context)) {
+            return $context;
+        }
+        
+        // Format arrays and objects
+        return json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+    
+    private function getFormattedTimestamp() {
+        $now = new DateTime();
+        return $now->format('Y-m-d H:i:s.u');
+    }
+    
+    private function shouldLog($type) {
+        $type = strtoupper($type);
+        $currentLevel = self::LOG_LEVELS[$this->logLevel] ?? 1;
+        $messageLevel = self::LOG_LEVELS[$type] ?? 1;
         
         return $messageLevel <= $currentLevel;
     }
     
     public function handleError($errno, $errstr, $errfile, $errline) {
-        $type = 'ERROR';
-        switch ($errno) {
-            case E_WARNING:
-                $type = 'WARNING';
-                break;
-            case E_NOTICE:
-                $type = 'NOTICE';
-                break;
-            case E_DEPRECATED:
-                $type = 'DEPRECATED';
-                break;
-        }
+        $type = $this->getErrorType($errno);
         
         $context = [
             'file' => $errfile,
             'line' => $errline,
-            'error_code' => $errno
+            'error_code' => $errno,
+            'backtrace' => $this->getBacktrace()
         ];
         
         $this->log($errstr, $type, $context);
@@ -134,7 +197,9 @@ class ErrorLogger {
         $context = [
             'file' => $exception->getFile(),
             'line' => $exception->getLine(),
-            'trace' => $exception->getTraceAsString()
+            'code' => $exception->getCode(),
+            'trace' => $exception->getTraceAsString(),
+            'previous' => $this->getPreviousExceptions($exception)
         ];
         
         $this->log($exception->getMessage(), 'EXCEPTION', $context);
@@ -145,11 +210,47 @@ class ErrorLogger {
         if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
             $context = [
                 'file' => $error['file'],
-                'line' => $error['line']
+                'line' => $error['line'],
+                'type' => $this->getErrorType($error['type']),
+                'backtrace' => $this->getBacktrace()
             ];
             
             $this->log($error['message'], 'FATAL', $context);
         }
+    }
+    
+    private function getErrorType($errno) {
+        return match($errno) {
+            E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR => 'ERROR',
+            E_WARNING, E_CORE_WARNING, E_COMPILE_WARNING, E_USER_WARNING => 'WARNING',
+            E_NOTICE, E_USER_NOTICE => 'NOTICE',
+            E_DEPRECATED, E_USER_DEPRECATED => 'DEPRECATED',
+            E_PARSE => 'PARSE',
+            default => 'UNKNOWN'
+        };
+    }
+    
+    private function getBacktrace() {
+        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+        // Remove the first few entries that relate to the error handler itself
+        return array_slice($trace, 3);
+    }
+    
+    private function getPreviousExceptions($exception) {
+        $previous = [];
+        $prev = $exception->getPrevious();
+        
+        while ($prev !== null) {
+            $previous[] = [
+                'message' => $prev->getMessage(),
+                'code' => $prev->getCode(),
+                'file' => $prev->getFile(),
+                'line' => $prev->getLine()
+            ];
+            $prev = $prev->getPrevious();
+        }
+        
+        return $previous;
     }
     
     public function getLogPath() {
