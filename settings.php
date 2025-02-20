@@ -213,11 +213,11 @@ include 'templates/header.php';
             
             <!-- Email Settings Tab -->
             <div class="tab-pane fade" id="email" role="tabpanel">
-                <div class="card">
+                <div class="card mb-4">
                     <div class="card-body">
                         <h5 class="card-title">Email Settings</h5>
-                        <form method="POST">
-                            <input type="hidden" name="settings_group" value="email">
+                        <form method="POST" id="emailSettingsForm">
+                            <input type="hidden" name="smtp_settings" value="1">
                             
                             <div class="mb-3">
                                 <label for="mail_server_type" class="form-label">Mail Server Type</label>
@@ -227,17 +227,29 @@ include 'templates/header.php';
                                 </select>
                             </div>
                             
-                            <div id="smtp_settings">
+                            <div id="smtp_settings" class="border rounded p-3 mb-3">
+                                <h6 class="mb-3">SMTP Configuration</h6>
+                                
                                 <div class="mb-3">
                                     <label for="smtp_host" class="form-label">SMTP Host</label>
                                     <input type="text" class="form-control" id="smtp_host" name="smtp_host" 
                                            value="<?php echo htmlspecialchars($settings->get('smtp_host', '')); ?>">
                                 </div>
                                 
-                                <div class="mb-3">
-                                    <label for="smtp_port" class="form-label">SMTP Port</label>
-                                    <input type="number" class="form-control" id="smtp_port" name="smtp_port" 
-                                           value="<?php echo htmlspecialchars($settings->get('smtp_port', '587')); ?>">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="smtp_port" class="form-label">SMTP Port</label>
+                                        <input type="number" class="form-control" id="smtp_port" name="smtp_port" 
+                                               value="<?php echo htmlspecialchars($settings->get('smtp_port', '587')); ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="smtp_encryption" class="form-label">Encryption</label>
+                                        <select class="form-select" id="smtp_encryption" name="smtp_encryption">
+                                            <option value="tls" <?php echo $settings->get('smtp_encryption') === 'tls' ? 'selected' : ''; ?>>TLS</option>
+                                            <option value="ssl" <?php echo $settings->get('smtp_encryption') === 'ssl' ? 'selected' : ''; ?>>SSL</option>
+                                            <option value="none" <?php echo $settings->get('smtp_encryption') === 'none' ? 'selected' : ''; ?>>None</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 
                                 <div class="mb-3">
@@ -251,33 +263,45 @@ include 'templates/header.php';
                                     <input type="password" class="form-control" id="smtp_password" name="smtp_password" 
                                            placeholder="Leave blank to keep current password">
                                 </div>
-                                
-                                <div class="mb-3">
-                                    <label for="smtp_encryption" class="form-label">Encryption</label>
-                                    <select class="form-select" id="smtp_encryption" name="smtp_encryption">
-                                        <option value="tls" <?php echo $settings->get('smtp_encryption') === 'tls' ? 'selected' : ''; ?>>TLS</option>
-                                        <option value="ssl" <?php echo $settings->get('smtp_encryption') === 'ssl' ? 'selected' : ''; ?>>SSL</option>
-                                        <option value="none" <?php echo $settings->get('smtp_encryption') === 'none' ? 'selected' : ''; ?>>None</option>
-                                    </select>
-                                </div>
                             </div>
                             
                             <div class="mb-3">
                                 <label for="smtp_from_email" class="form-label">From Email Address</label>
                                 <input type="email" class="form-control" id="smtp_from_email" name="smtp_from_email" 
-                                       value="<?php echo htmlspecialchars($settings->get('smtp_from_email', '')); ?>">
+                                       value="<?php echo htmlspecialchars($settings->get('smtp_from_email', '')); ?>" required>
                             </div>
                             
                             <div class="mb-3">
                                 <label for="smtp_from_name" class="form-label">From Name</label>
                                 <input type="text" class="form-control" id="smtp_from_name" name="smtp_from_name" 
-                                       value="<?php echo htmlspecialchars($settings->get('smtp_from_name', 'SEO Dashboard')); ?>">
+                                       value="<?php echo htmlspecialchars($settings->get('smtp_from_name', 'SEO Dashboard')); ?>" required>
                             </div>
                             
                             <button type="submit" class="btn btn-primary">Save Email Settings</button>
-                            
-                            <button type="button" class="btn btn-info ms-2" id="testEmailBtn">
-                                Test Email Settings
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Test Email Card -->
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Test Email Configuration</h5>
+                        <form id="testEmailForm" class="mb-0">
+                            <div class="mb-3">
+                                <label for="test_email" class="form-label">Recipient Email</label>
+                                <input type="email" class="form-control" id="test_email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="test_subject" class="form-label">Subject</label>
+                                <input type="text" class="form-control" id="test_subject" 
+                                       value="Test Email from SEO Dashboard" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="test_message" class="form-label">Message</label>
+                                <textarea class="form-control" id="test_message" rows="3" required>This is a test email from your SEO Dashboard application.</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-info" id="sendTestEmail">
+                                <i class="bi bi-envelope-paper me-1"></i>Send Test Email
                             </button>
                         </form>
                     </div>
@@ -452,6 +476,54 @@ include 'templates/header.php';
 <!-- Add this before the closing </div> of the main container -->
 <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
 
+<!-- Test Email Result Modal -->
+<div class="modal fade" id="emailTestModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Email Test Results</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="emailTestStatus" class="alert d-none mb-3"></div>
+                
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Email Details</h6>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-3">From:</dt>
+                            <dd class="col-sm-9" id="emailTestFrom"></dd>
+                            
+                            <dt class="col-sm-3">To:</dt>
+                            <dd class="col-sm-9" id="emailTestTo"></dd>
+                            
+                            <dt class="col-sm-3">Subject:</dt>
+                            <dd class="col-sm-9" id="emailTestSubject"></dd>
+                            
+                            <dt class="col-sm-3">Server:</dt>
+                            <dd class="col-sm-9" id="emailTestServer"></dd>
+                        </dl>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Server Response</h6>
+                    </div>
+                    <div class="card-body">
+                        <pre class="mb-0"><code id="emailTestResponse"></code></pre>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 function showToast(message, type = 'success') {
     // Create toast container if it doesn't exist
@@ -511,28 +583,58 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Test Email Settings
-document.getElementById('testEmailBtn')?.addEventListener('click', function() {
-    const testEmail = prompt('Enter email address to send test message:');
-    if (testEmail) {
-        const formData = new FormData(this.closest('form'));
-        formData.append('test_email', testEmail);
-        formData.append('test_subject', 'Test Email from SEO Dashboard');
-        formData.append('test_message', 'This is a test email from your SEO Dashboard application.');
-        
-        fetch('test_smtp.php', {
+// Handle test email form submission
+document.getElementById('testEmailForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const testEmailBtn = document.getElementById('sendTestEmail');
+    const originalBtnText = testEmailBtn.innerHTML;
+    testEmailBtn.disabled = true;
+    testEmailBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sending...';
+    
+    const formData = new FormData();
+    formData.append('test_email', document.getElementById('test_email').value);
+    formData.append('test_subject', document.getElementById('test_subject').value);
+    formData.append('test_message', document.getElementById('test_message').value);
+    
+    // Add current SMTP settings
+    const emailSettingsForm = document.getElementById('emailSettingsForm');
+    new FormData(emailSettingsForm).forEach((value, key) => {
+        formData.append(key, value);
+    });
+    
+    try {
+        const response = await fetch('ajax/test_email.php', {
             method: 'POST',
             body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            console.log('Debug info:', data.debug);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Failed to test email settings. Check console for details.');
         });
+        
+        const result = await response.json();
+        
+        // Update modal content
+        document.getElementById('emailTestStatus').className = 
+            'alert alert-' + (result.success ? 'success' : 'danger');
+        document.getElementById('emailTestStatus').textContent = result.message;
+        document.getElementById('emailTestStatus').classList.remove('d-none');
+        
+        document.getElementById('emailTestFrom').textContent = 
+            `${document.getElementById('smtp_from_name').value} <${document.getElementById('smtp_from_email').value}>`;
+        document.getElementById('emailTestTo').textContent = document.getElementById('test_email').value;
+        document.getElementById('emailTestSubject').textContent = document.getElementById('test_subject').value;
+        document.getElementById('emailTestServer').textContent = 
+            document.getElementById('smtp_host').value + ':' + document.getElementById('smtp_port').value;
+        
+        document.getElementById('emailTestResponse').textContent = 
+            JSON.stringify(result.debug, null, 2);
+        
+        // Show modal
+        new bootstrap.Modal(document.getElementById('emailTestModal')).show();
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Failed to test email settings. Check console for details.', 'danger');
+    } finally {
+        testEmailBtn.disabled = false;
+        testEmailBtn.innerHTML = originalBtnText;
     }
 });
 
