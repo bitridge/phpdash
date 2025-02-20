@@ -5,6 +5,7 @@ require_once 'includes/project.php';
 require_once 'includes/seo_log.php';
 require_once 'includes/report.php';
 require_once 'vendor/autoload.php';
+require_once 'includes/ErrorLogger.php';
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -25,6 +26,9 @@ if (!$project) {
     header('Location: projects.php');
     exit();
 }
+
+// Initialize error logger
+$logger = ErrorLogger::getInstance();
 
 // Process form data
 $report = [
@@ -128,22 +132,38 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "
 
 // Store original paths before converting to absolute paths
 $originalLogoPath = $project['logo_path'];
+$logger->log("Original logo path: " . $originalLogoPath, 'INFO');
 
 // Convert relative paths to absolute for images
 if ($project['logo_path']) {
+    $logger->log("Processing logo path...", 'INFO');
+    
+    // Try direct realpath
     $absolutePath = realpath(__DIR__ . '/' . $project['logo_path']);
+    $logger->log("Attempting direct realpath: " . __DIR__ . '/' . $project['logo_path'], 'DEBUG');
+    
     if ($absolutePath) {
         $project['logo_path'] = $absolutePath;
+        $logger->log("Direct realpath successful: " . $absolutePath, 'INFO');
     } else {
-        // If realpath fails, try with document root
-        $absolutePath = realpath($_SERVER['DOCUMENT_ROOT'] . '/' . ltrim($project['logo_path'], '/'));
+        // Try with document root
+        $docRootPath = $_SERVER['DOCUMENT_ROOT'] . '/' . ltrim($project['logo_path'], '/');
+        $absolutePath = realpath($docRootPath);
+        $logger->log("Attempting document root path: " . $docRootPath, 'DEBUG');
+        
         if ($absolutePath) {
             $project['logo_path'] = $absolutePath;
+            $logger->log("Document root path successful: " . $absolutePath, 'INFO');
         } else {
             // If both attempts fail, try with the full server path
-            $project['logo_path'] = $_SERVER['DOCUMENT_ROOT'] . '/' . ltrim($project['logo_path'], '/');
+            $project['logo_path'] = $docRootPath;
+            $logger->log("Using document root path directly: " . $docRootPath, 'INFO');
         }
     }
+    
+    // Log final path and existence check
+    $logger->log("Final logo path: " . $project['logo_path'], 'INFO');
+    $logger->log("File exists check: " . (file_exists($project['logo_path']) ? 'true' : 'false'), 'INFO');
 }
 
 foreach ($report['sections'] as &$section) {

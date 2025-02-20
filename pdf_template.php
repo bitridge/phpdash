@@ -125,6 +125,8 @@
     <div class="header">
         <?php if ($project['logo_path']): ?>
             <?php
+            $logger->log("PDF Template - Processing logo path: " . $project['logo_path'], 'INFO');
+            
             // Try multiple path variations to find the logo
             $logoPath = $project['logo_path'];
             $paths = [
@@ -135,12 +137,22 @@
                 realpath(__DIR__ . '/' . $logoPath)
             ];
             
+            $logger->log("Trying paths: " . json_encode($paths), 'DEBUG');
+            
             $validPath = null;
             foreach ($paths as $path) {
+                $logger->log("Checking path: " . $path, 'DEBUG');
                 if ($path && file_exists($path)) {
                     $validPath = $path;
+                    $logger->log("Valid path found: " . $path, 'INFO');
                     break;
                 }
+            }
+            
+            if ($validPath) {
+                $logger->log("Using logo path: " . $validPath, 'INFO');
+            } else {
+                $logger->log("No valid logo path found", 'WARNING');
             }
             ?>
             <?php if ($validPath): ?>
