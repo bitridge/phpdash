@@ -91,13 +91,12 @@ if (isset($_POST['selected_logs']) && is_array($_POST['selected_logs'])) {
         $conn = getDbConnection();
         $idList = implode(',', $selectedLogIds);
         
-        // Only get the specifically selected logs, ensure uniqueness with GROUP BY
-        $query = "SELECT DISTINCT s.*, u.name as created_by_name 
+        // Get all selected logs and order them by date and type
+        $query = "SELECT s.*, u.name as created_by_name 
                   FROM seo_logs s 
                   LEFT JOIN users u ON s.created_by = u.id 
                   WHERE s.id IN ($idList)
-                  GROUP BY s.id
-                  ORDER BY s.log_date DESC, s.created_at DESC";
+                  ORDER BY s.log_date DESC, s.log_type ASC, s.created_at DESC";
                   
         $logger->log("Executing SQL Query: " . $query, 'DEBUG');
         $result = $conn->query($query);
@@ -113,14 +112,8 @@ if (isset($_POST['selected_logs']) && is_array($_POST['selected_logs'])) {
                 // Convert log ID to integer for comparison
                 $logId = (int)$log['id'];
                 
-                // Double-check for duplicates using integer comparison
-                if (!in_array($logId, $processedIds, true)) {
-                    $logger->log("Retrieved log: " . json_encode($log), 'DEBUG');
-                    $report['logs'][] = $log;
-                    $processedIds[] = $logId;
-                } else {
-                    $logger->log("Skipping duplicate log ID: " . $log['id'], 'WARNING');
-                }
+                $logger->log("Retrieved log: " . json_encode($log), 'DEBUG');
+                $report['logs'][] = $log;
             }
             
             $logger->log("Total logs retrieved: " . count($report['logs']), 'INFO');
@@ -192,11 +185,19 @@ function optimizeImageForPdf($imagePath) {
 // Before PDF generation, optimize images
 foreach ($report['logs'] as &$log) {
     if (!empty($log['image_path'])) {
-        $absolutePath = realpath(__DIR__ . '/' . $log['image_path']);
-        if ($absolutePath) {
-            $optimizedPath = optimizeImageForPdf($absolutePath);
+        // Check if path is already absolute
+        if (file_exists($log['image_path'])) {
+            $optimizedPath = optimizeImageForPdf($log['image_path']);
             if ($optimizedPath) {
                 $log['image_path'] = $optimizedPath;
+            }
+        } else {
+            $absolutePath = realpath(__DIR__ . '/' . $log['image_path']);
+            if ($absolutePath) {
+                $optimizedPath = optimizeImageForPdf($absolutePath);
+                if ($optimizedPath) {
+                    $log['image_path'] = $optimizedPath;
+                }
             }
         }
     }
@@ -204,11 +205,19 @@ foreach ($report['logs'] as &$log) {
 
 // Process project logo
 if ($project['logo_path']) {
-    $absolutePath = realpath(__DIR__ . '/' . $project['logo_path']);
-    if ($absolutePath) {
-        $optimizedPath = optimizeImageForPdf($absolutePath);
+    // Check if path is already absolute
+    if (file_exists($project['logo_path'])) {
+        $optimizedPath = optimizeImageForPdf($project['logo_path']);
         if ($optimizedPath) {
             $project['logo_path'] = $optimizedPath;
+        }
+    } else {
+        $absolutePath = realpath(__DIR__ . '/' . $project['logo_path']);
+        if ($absolutePath) {
+            $optimizedPath = optimizeImageForPdf($absolutePath);
+            if ($optimizedPath) {
+                $project['logo_path'] = $optimizedPath;
+            }
         }
     }
 }
@@ -229,6 +238,13 @@ $options->setIsRemoteEnabled(true);
 $logger->log("Pre-PDF generation - Number of logs: " . count($report['logs']), 'INFO');
 $logger->log("Pre-PDF generation - Log IDs: " . json_encode(array_column($report['logs'], 'id')), 'DEBUG');
 
+// Additional logging to verify no duplicates
+$uniqueLogIds = array_unique(array_column($report['logs'], 'id'));
+if (count($uniqueLogIds) !== count($report['logs'])) {
+    $logger->log("Duplicate logs detected before PDF generation", 'WARNING');
+    $logger->log("Unique Log IDs: " . json_encode($uniqueLogIds), 'DEBUG');
+}
+
 $dompdf = new Dompdf($options);
 
 // Get absolute path for images
@@ -243,16 +259,18 @@ $logger->log("Original logo path: " . $originalLogoPath, 'INFO');
 if ($project['logo_path']) {
     $logger->log("Processing logo path...", 'INFO');
     
-    // Try direct realpath
-    $absolutePath = realpath(__DIR__ . '/' . $project['logo_path']);
-    $logger->log("Attempting direct realpath: " . __DIR__ . '/' . $project['logo_path'], 'DEBUG');
-    
-    if ($absolutePath && file_exists($absolutePath)) {
-        $project['logo_path'] = $absolutePath;
-        $logger->log("Direct realpath successful: " . $absolutePath, 'INFO');
-        $logger->log("File exists check: true", 'INFO');
+    // Check if path is already absolute
+    if (file_exists($project['logo_path'])) {
+        $logger->log("Logo path is already absolute and exists", 'INFO');
     } else {
-        $logger->log("Failed to resolve logo path", 'WARNING');
+        // Try to resolve relative path
+        $absolutePath = realpath(__DIR__ . '/' . $project['logo_path']);
+        if ($absolutePath && file_exists($absolutePath)) {
+            $project['logo_path'] = $absolutePath;
+            $logger->log("Resolved relative path to: " . $absolutePath, 'INFO');
+        } else {
+            $logger->log("Failed to resolve logo path", 'WARNING');
+        }
     }
     
     $logger->log("Final logo path: " . $project['logo_path'], 'INFO');
@@ -260,8 +278,12 @@ if ($project['logo_path']) {
 
 foreach ($report['sections'] as &$section) {
     if ($section['image']) {
+        if (file_exists($section['image'])) {
+            // Path is already absolute
+            continue;
+        }
         $absolutePath = realpath(__DIR__ . '/' . $section['image']);
-        if ($absolutePath) {
+        if ($absolutePath && file_exists($absolutePath)) {
             $section['image'] = $absolutePath;
         }
     }
@@ -269,8 +291,12 @@ foreach ($report['sections'] as &$section) {
 
 foreach ($report['logs'] as &$log) {
     if ($log['image_path']) {
+        if (file_exists($log['image_path'])) {
+            // Path is already absolute
+            continue;
+        }
         $absolutePath = realpath(__DIR__ . '/' . $log['image_path']);
-        if ($absolutePath) {
+        if ($absolutePath && file_exists($absolutePath)) {
             $log['image_path'] = $absolutePath;
         }
     }
@@ -361,4 +387,4 @@ function getLogTypeColor($type) {
     ];
     
     return $colors[$type] ?? '#95a5a6';
-} 
+}

@@ -165,7 +165,14 @@
         <?php $logger->log("PDF Template - Starting to render SEO logs section. Total logs: " . count($report['logs']), 'INFO'); ?>
         <div class="section">
             <h2 class="section-title">SEO Activity Log</h2>
-            <?php foreach ($report['logs'] as $index => $log): ?>
+            <?php 
+            // Get unique logs by ID to prevent duplicates
+            $uniqueLogs = [];
+            foreach ($report['logs'] as $log) {
+                $uniqueLogs[$log['id']] = $log;
+            }
+            foreach ($uniqueLogs as $index => $log): 
+            ?>
                 <?php $logger->log("PDF Template - Rendering log {$index} (ID: {$log['id']}, Date: {$log['log_date']}, Type: {$log['log_type']})", 'DEBUG'); ?>
                 <div class="log-entry">
                     <div class="log-header">
@@ -201,4 +208,4 @@
         <?php $logger->log("PDF Template - No SEO logs to render", 'WARNING'); ?>
     <?php endif; ?>
 </body>
-</html> 
+</html>
