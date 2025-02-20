@@ -172,8 +172,9 @@
                 $uniqueLogs[$log['id']] = $log;
             }
             foreach ($uniqueLogs as $index => $log): 
+                try {
+                    $logger->log("PDF Template - Rendering log {$index} (ID: {$log['id']}, Date: {$log['log_date']}, Type: {$log['log_type']})", 'DEBUG');
             ?>
-                <?php $logger->log("PDF Template - Rendering log {$index} (ID: {$log['id']}, Date: {$log['log_date']}, Type: {$log['log_type']})", 'DEBUG'); ?>
                 <div class="log-entry">
                     <div class="log-header">
                         <span class="log-type" style="background-color: <?php echo getLogTypeColor($log['log_type']); ?>">
@@ -186,7 +187,15 @@
                     <div class="log-content">
                         <?php 
                         $logger->log("PDF Template - Log content length: " . strlen($log['log_details']), 'DEBUG');
-                        echo $log['log_details']; 
+                        // Clean and process the content
+                        $content = $log['log_details'];
+                        // Convert URLs to clickable links
+                        $content = preg_replace('/(https?:\/\/[^\s<]+)/', '<a href="$1">$1</a>', $content);
+                        // Remove empty paragraphs
+                        $content = str_replace(['<p><br></p>', '<p></p>'], '', $content);
+                        // Ensure proper encoding
+                        $content = html_entity_decode($content, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                        echo $content;
                         ?>
                     </div>
                     <?php if (!empty($log['image_path'])): ?>
@@ -201,7 +210,11 @@
                         <?php endif; ?>
                     <?php endif; ?>
                 </div>
-            <?php endforeach; ?>
+            <?php
+                } catch (Exception $e) {
+                    $logger->log("PDF Template - Error rendering log {$index}: " . $e->getMessage(), 'ERROR');
+                }
+            endforeach; ?>
             <?php $logger->log("PDF Template - Finished rendering SEO logs section", 'INFO'); ?>
         </div>
     <?php else: ?>
