@@ -166,14 +166,20 @@
         <div class="section">
             <h2 class="section-title">SEO Activity Log</h2>
             <?php 
-            // Get unique logs by ID to prevent duplicates
+            // Process logs in the original order they were selected
             $uniqueLogs = [];
+            $processedIds = [];
             foreach ($report['logs'] as $log) {
-                $uniqueLogs[$log['id']] = $log;
+                if (!in_array($log['id'], $processedIds)) {
+                    $uniqueLogs[] = $log;
+                    $processedIds[] = $log['id'];
+                }
             }
+            $logger->log("PDF Template - Unique logs to process: " . json_encode($processedIds), 'DEBUG');
+            
             foreach ($uniqueLogs as $index => $log): 
                 try {
-                    $logger->log("PDF Template - Rendering log {$index} (ID: {$log['id']}, Date: {$log['log_date']}, Type: {$log['log_type']})", 'DEBUG');
+                    $logger->log("PDF Template - Starting to render log {$index}", 'DEBUG');
             ?>
                 <div class="log-entry">
                     <div class="log-header">
@@ -186,16 +192,38 @@
                     </div>
                     <div class="log-content">
                         <?php 
-                        $logger->log("PDF Template - Log content length: " . strlen($log['log_details']), 'DEBUG');
-                        // Clean and process the content
-                        $content = $log['log_details'];
-                        // Convert URLs to clickable links
-                        $content = preg_replace('/(https?:\/\/[^\s<]+)/', '<a href="$1">$1</a>', $content);
-                        // Remove empty paragraphs
-                        $content = str_replace(['<p><br></p>', '<p></p>'], '', $content);
-                        // Ensure proper encoding
-                        $content = html_entity_decode($content, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-                        echo $content;
+                        try {
+                            $logger->log("PDF Template - Processing content for log {$index}", 'DEBUG');
+                            // Clean and process the content
+                            $content = $log['log_details'];
+                            
+                            // Validate content
+                            if (empty($content)) {
+                                $logger->log("PDF Template - Warning: Empty content for log {$index}", 'WARNING');
+                                $content = '<p><em>No content available</em></p>';
+                            }
+                            
+                            // Convert URLs to clickable links
+                            $content = preg_replace('/(https?:\/\/[^\s<]+)/', '<a href="$1">$1</a>', $content);
+                            
+                            // Remove empty paragraphs
+                            $content = str_replace(['<p><br></p>', '<p></p>'], '', $content);
+                            
+                            // Ensure proper encoding
+                            $content = html_entity_decode($content, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                            
+                            // Validate final content
+                            if (empty(strip_tags($content))) {
+                                $logger->log("PDF Template - Warning: Content became empty after processing for log {$index}", 'WARNING');
+                                $content = '<p><em>Content processing error</em></p>';
+                            }
+                            
+                            echo $content;
+                            $logger->log("PDF Template - Finished processing content for log {$index}", 'DEBUG');
+                        } catch (Exception $e) {
+                            $logger->log("PDF Template - Error processing content for log {$index}: " . $e->getMessage(), 'ERROR');
+                            echo '<p><em>Error processing content</em></p>';
+                        }
                         ?>
                     </div>
                     <?php if (!empty($log['image_path'])): ?>
@@ -211,6 +239,7 @@
                     <?php endif; ?>
                 </div>
             <?php
+                    $logger->log("PDF Template - Successfully rendered log {$index}", 'DEBUG');
                 } catch (Exception $e) {
                     $logger->log("PDF Template - Error rendering log {$index}: " . $e->getMessage(), 'ERROR');
                 }

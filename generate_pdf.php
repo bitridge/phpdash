@@ -96,7 +96,7 @@ if (isset($_POST['selected_logs']) && is_array($_POST['selected_logs'])) {
                   FROM seo_logs s 
                   LEFT JOIN users u ON s.created_by = u.id 
                   WHERE s.id IN ($idList)
-                  ORDER BY s.log_date DESC, s.log_type ASC, s.created_at DESC";
+                  ORDER BY FIELD(s.id, $idList)";  // Preserve the order of selected logs
                   
         $logger->log("Executing SQL Query: " . $query, 'DEBUG');
         $result = $conn->query($query);
@@ -114,6 +114,13 @@ if (isset($_POST['selected_logs']) && is_array($_POST['selected_logs'])) {
                 
                 $logger->log("Retrieved log: " . json_encode($log), 'DEBUG');
                 $report['logs'][] = $log;
+                $processedIds[] = $logId;
+            }
+            
+            // Check if any logs were missed
+            $missedIds = array_diff($selectedLogIds, $processedIds);
+            if (!empty($missedIds)) {
+                $logger->log("Warning: Some selected logs were not retrieved: " . implode(', ', $missedIds), 'WARNING');
             }
             
             $logger->log("Total logs retrieved: " . count($report['logs']), 'INFO');
