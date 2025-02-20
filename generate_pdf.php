@@ -135,8 +135,14 @@ if ($project['logo_path']) {
     if ($absolutePath) {
         $project['logo_path'] = $absolutePath;
     } else {
-        // If realpath fails, keep the original path
-        $project['logo_path'] = $originalLogoPath;
+        // If realpath fails, try with document root
+        $absolutePath = realpath($_SERVER['DOCUMENT_ROOT'] . '/' . ltrim($project['logo_path'], '/'));
+        if ($absolutePath) {
+            $project['logo_path'] = $absolutePath;
+        } else {
+            // If both attempts fail, try with the full server path
+            $project['logo_path'] = $_SERVER['DOCUMENT_ROOT'] . '/' . ltrim($project['logo_path'], '/');
+        }
     }
 }
 

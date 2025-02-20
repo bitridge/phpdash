@@ -124,8 +124,28 @@
     <!-- Header -->
     <div class="header">
         <?php if ($project['logo_path']): ?>
-            <img src="<?php echo file_exists($project['logo_path']) ? $project['logo_path'] : __DIR__ . '/' . $project['logo_path']; ?>" 
-                 alt="Project Logo" class="project-logo">
+            <?php
+            // Try multiple path variations to find the logo
+            $logoPath = $project['logo_path'];
+            $paths = [
+                $logoPath,
+                __DIR__ . '/' . $logoPath,
+                $_SERVER['DOCUMENT_ROOT'] . '/' . ltrim($logoPath, '/'),
+                realpath($logoPath),
+                realpath(__DIR__ . '/' . $logoPath)
+            ];
+            
+            $validPath = null;
+            foreach ($paths as $path) {
+                if ($path && file_exists($path)) {
+                    $validPath = $path;
+                    break;
+                }
+            }
+            ?>
+            <?php if ($validPath): ?>
+                <img src="<?php echo $validPath; ?>" alt="Project Logo" class="project-logo">
+            <?php endif; ?>
         <?php endif; ?>
         <div class="project-name"><?php echo htmlspecialchars($project['project_name']); ?></div>
         <div class="report-title"><?php echo htmlspecialchars($report['title']); ?></div>
