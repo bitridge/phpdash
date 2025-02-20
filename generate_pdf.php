@@ -71,7 +71,7 @@ if (isset($_POST['sections'])) {
     }
 }
 
-// Process selected logs
+// Get selected logs
 if (isset($_POST['selected_logs']) && is_array($_POST['selected_logs'])) {
     $startDate = isset($_POST['start_date']) ? $_POST['start_date'] : date('Y-m-01');
     $endDate = isset($_POST['end_date']) ? $_POST['end_date'] : date('Y-m-d');
@@ -84,12 +84,15 @@ if (isset($_POST['selected_logs']) && is_array($_POST['selected_logs'])) {
     
     foreach ($selectedLogIds as $logId) {
         $log = getSeoLog($logId);
-        // Only include logs within the date range and prevent duplicates
-        if ($log && 
-            strtotime($log['log_date']) >= strtotime($startDate) && 
-            strtotime($log['log_date']) <= strtotime($endDate) &&
-            !isset($logsById[$log['id']])) {
-            $logsById[$log['id']] = $log;
+        if ($log) {
+            $logDate = strtotime($log['log_date']);
+            $startDateTime = strtotime($startDate);
+            $endDateTime = strtotime($endDate . ' 23:59:59'); // Include the full end date
+            
+            // Only include logs within the date range and prevent duplicates
+            if ($logDate >= $startDateTime && $logDate <= $endDateTime) {
+                $logsById[$log['id']] = $log;
+            }
         }
     }
     
@@ -123,25 +126,35 @@ $dompdf = new Dompdf($options);
 $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . 
            "://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . '/';
 
+// Store original paths before converting to absolute paths
+$originalLogoPath = $project['logo_path'];
+
 // Convert relative paths to absolute for images
 if ($project['logo_path']) {
-    $project['logo_path'] = realpath(__DIR__ . '/' . $project['logo_path']);
+    $absolutePath = realpath(__DIR__ . '/' . $project['logo_path']);
+    if ($absolutePath) {
+        $project['logo_path'] = $absolutePath;
+    } else {
+        // If realpath fails, keep the original path
+        $project['logo_path'] = $originalLogoPath;
+    }
 }
 
 foreach ($report['sections'] as &$section) {
     if ($section['image']) {
-        // Ensure we're using the full server path for the image
-        $section['image'] = realpath($section['image']);
-        if (!$section['image']) {
-            // If realpath fails, try with the __DIR__ prefix
-            $section['image'] = realpath(__DIR__ . '/' . $section['image']);
+        $absolutePath = realpath(__DIR__ . '/' . $section['image']);
+        if ($absolutePath) {
+            $section['image'] = $absolutePath;
         }
     }
 }
 
 foreach ($report['logs'] as &$log) {
     if ($log['image_path']) {
-        $log['image_path'] = realpath(__DIR__ . '/' . $log['image_path']);
+        $absolutePath = realpath(__DIR__ . '/' . $log['image_path']);
+        if ($absolutePath) {
+            $log['image_path'] = $absolutePath;
+        }
     }
 }
 

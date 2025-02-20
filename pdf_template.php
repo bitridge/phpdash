@@ -123,8 +123,9 @@
 <body>
     <!-- Header -->
     <div class="header">
-        <?php if ($project['logo_path'] && file_exists($project['logo_path'])): ?>
-            <img src="<?php echo $project['logo_path']; ?>" alt="Project Logo" class="project-logo">
+        <?php if ($project['logo_path']): ?>
+            <img src="<?php echo file_exists($project['logo_path']) ? $project['logo_path'] : __DIR__ . '/' . $project['logo_path']; ?>" 
+                 alt="Project Logo" class="project-logo">
         <?php endif; ?>
         <div class="project-name"><?php echo htmlspecialchars($project['project_name']); ?></div>
         <div class="report-title"><?php echo htmlspecialchars($report['title']); ?></div>
@@ -163,23 +164,7 @@
     <?php if (!empty($report['logs'])): ?>
         <div class="section">
             <h2 class="section-title">SEO Activity Log</h2>
-            <?php 
-            // Sort logs by date in descending order
-            usort($report['logs'], function($a, $b) {
-                return strtotime($b['log_date']) - strtotime($a['log_date']);
-            });
-            
-            // Track unique logs by ID to prevent duplicates
-            $processedLogIds = [];
-            
-            foreach ($report['logs'] as $log):
-                // Skip if we've already processed this log
-                if (in_array($log['id'], $processedLogIds)) continue;
-                $processedLogIds[] = $log['id'];
-
-                // Process log details to properly wrap URLs
-                $logDetails = $log['log_details'];
-            ?>
+            <?php foreach ($report['logs'] as $log): ?>
                 <div class="log-entry">
                     <div class="log-header">
                         <span class="log-type" style="background-color: <?php echo getLogTypeColor($log['log_type']); ?>">
@@ -190,7 +175,7 @@
                         </span>
                     </div>
                     <div class="log-content">
-                        <?php echo $logDetails; ?>
+                        <?php echo $log['log_details']; ?>
                     </div>
                     <?php if (!empty($log['image_path']) && file_exists($log['image_path'])): ?>
                         <div class="log-image-container">

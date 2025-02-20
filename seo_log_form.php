@@ -229,6 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 [{ 'color': [] }, { 'background': [] }],
                 [{ 'font': [] }],
                 [{ 'align': [] }],
+                ['link'],
                 ['clean']
             ]
         }
