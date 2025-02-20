@@ -123,6 +123,22 @@ $pageTitle = 'Settings';
 include 'templates/header.php';
 ?>
 
+<style>
+    .nav-tabs .nav-link {
+        color: #000000 !important;  /* Force black color for all states */
+        opacity: 0.8;  /* Slightly dimmed for inactive tabs */
+    }
+    .nav-tabs .nav-link.active {
+        color: #000000 !important;  /* Force black color for active state */
+        opacity: 1;  /* Full opacity for active tab */
+        font-weight: 500;  /* Slightly bolder for active tab */
+    }
+    .nav-tabs .nav-link:hover {
+        color: #000000 !important;  /* Force black color on hover */
+        opacity: 1;  /* Full opacity on hover */
+    }
+</style>
+
 <div class="row mb-4">
     <div class="col-12">
         <h1>Settings</h1>
