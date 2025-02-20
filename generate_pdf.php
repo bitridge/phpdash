@@ -80,15 +80,22 @@ if (isset($_POST['selected_logs']) && is_array($_POST['selected_logs'])) {
     $startDate = isset($_POST['start_date']) ? $_POST['start_date'] : date('Y-m-01');
     $endDate = isset($_POST['end_date']) ? $_POST['end_date'] : date('Y-m-d');
     
+    $logger->log("Processing selected logs. Start date: $startDate, End date: $endDate", 'INFO');
+    $logger->log("Selected log IDs: " . json_encode($_POST['selected_logs']), 'DEBUG');
+    
     // Get unique log IDs and ensure they're integers
     $selectedLogIds = array_map('intval', array_unique($_POST['selected_logs']));
+    $logger->log("Unique log IDs after processing: " . json_encode($selectedLogIds), 'DEBUG');
     
     // Create a temporary array to store logs by ID to prevent duplicates
     $logsById = [];
     
     foreach ($selectedLogIds as $logId) {
         $log = getSeoLog($logId);
+        $logger->log("Processing log ID: $logId", 'DEBUG');
+        
         if ($log) {
+            $logger->log("Found log: " . json_encode($log), 'DEBUG');
             $logDate = strtotime($log['log_date']);
             $startDateTime = strtotime($startDate);
             $endDateTime = strtotime($endDate . ' 23:59:59'); // Include the full end date
@@ -96,12 +103,19 @@ if (isset($_POST['selected_logs']) && is_array($_POST['selected_logs'])) {
             // Only include logs within the date range and prevent duplicates
             if ($logDate >= $startDateTime && $logDate <= $endDateTime) {
                 $logsById[$log['id']] = $log;
+                $logger->log("Added log ID {$log['id']} to report", 'INFO');
+            } else {
+                $logger->log("Log ID {$log['id']} outside date range (date: " . date('Y-m-d', $logDate) . ")", 'WARNING');
             }
+        } else {
+            $logger->log("Log ID $logId not found", 'WARNING');
         }
     }
     
     // Convert to indexed array and sort by date
     $report['logs'] = array_values($logsById);
+    $logger->log("Total logs after processing: " . count($report['logs']), 'INFO');
+    
     usort($report['logs'], function($a, $b) {
         $dateCompare = strtotime($b['log_date']) - strtotime($a['log_date']);
         if ($dateCompare === 0) {
@@ -110,6 +124,8 @@ if (isset($_POST['selected_logs']) && is_array($_POST['selected_logs'])) {
         }
         return $dateCompare;
     });
+    
+    $logger->log("Logs after sorting: " . json_encode(array_column($report['logs'], 'id')), 'DEBUG');
 }
 
 // Initialize DomPDF with updated options
@@ -142,28 +158,15 @@ if ($project['logo_path']) {
     $absolutePath = realpath(__DIR__ . '/' . $project['logo_path']);
     $logger->log("Attempting direct realpath: " . __DIR__ . '/' . $project['logo_path'], 'DEBUG');
     
-    if ($absolutePath) {
+    if ($absolutePath && file_exists($absolutePath)) {
         $project['logo_path'] = $absolutePath;
         $logger->log("Direct realpath successful: " . $absolutePath, 'INFO');
+        $logger->log("File exists check: true", 'INFO');
     } else {
-        // Try with document root
-        $docRootPath = $_SERVER['DOCUMENT_ROOT'] . '/' . ltrim($project['logo_path'], '/');
-        $absolutePath = realpath($docRootPath);
-        $logger->log("Attempting document root path: " . $docRootPath, 'DEBUG');
-        
-        if ($absolutePath) {
-            $project['logo_path'] = $absolutePath;
-            $logger->log("Document root path successful: " . $absolutePath, 'INFO');
-        } else {
-            // If both attempts fail, try with the full server path
-            $project['logo_path'] = $docRootPath;
-            $logger->log("Using document root path directly: " . $docRootPath, 'INFO');
-        }
+        $logger->log("Failed to resolve logo path", 'WARNING');
     }
     
-    // Log final path and existence check
     $logger->log("Final logo path: " . $project['logo_path'], 'INFO');
-    $logger->log("File exists check: " . (file_exists($project['logo_path']) ? 'true' : 'false'), 'INFO');
 }
 
 foreach ($report['sections'] as &$section) {

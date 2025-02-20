@@ -71,6 +71,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         $success = 'Company settings updated successfully';
+    } elseif (isset($_POST['debug_settings'])) {
+        // Handle debug settings
+        $debugSettings = [
+            'debug_mode' => isset($_POST['debug_mode']) ? '1' : '0',
+            'log_level' => $_POST['log_level'] ?? 'ERROR',
+            'log_retention' => (int)($_POST['log_retention'] ?? 30),
+            'display_errors' => isset($_POST['display_errors']) ? '1' : '0'
+        ];
+        
+        foreach ($debugSettings as $key => $value) {
+            $settings->set($key, $value, 'debug');
+        }
+        
+        // Update PHP error display setting
+        ini_set('display_errors', $debugSettings['display_errors']);
+        ini_set('display_startup_errors', $debugSettings['display_errors']);
+        
+        // Refresh ErrorLogger settings
+        require_once 'includes/ErrorLogger.php';
+        $logger = ErrorLogger::getInstance();
+        $logger->refreshSettings();
+        
+        $success = 'Debug settings updated successfully';
     } elseif (isset($_POST['create_backup'])) {
         // Handle database backup
         $backupPath = $settings->createDatabaseBackup();
@@ -117,7 +140,7 @@ include 'templates/header.php';
 <div class="row">
     <div class="col-md-12">
         <!-- Nav tabs -->
-        <ul class="nav nav-tabs mb-4" id="settingsTabs" role="tablist">
+        <ul class="nav nav-tabs nav-fill mb-4" id="settingsTabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
                     <i class="bi bi-gear me-1"></i> General Settings
@@ -131,6 +154,11 @@ include 'templates/header.php';
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="timezone-tab" data-bs-toggle="tab" data-bs-target="#timezone" type="button" role="tab">
                     <i class="bi bi-clock me-1"></i> Timezone & Date
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="debug-tab" data-bs-toggle="tab" data-bs-target="#debug" type="button" role="tab">
+                    <i class="bi bi-bug me-1"></i> Debug Settings
                 </button>
             </li>
         </ul>
@@ -324,6 +352,80 @@ include 'templates/header.php';
                                 <?php echo $settings->getCurrentDateTime(); ?>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Debug Settings Tab -->
+            <div class="tab-pane fade" id="debug" role="tabpanel">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Debug Settings</h5>
+                        <form method="POST">
+                            <input type="hidden" name="debug_settings" value="1">
+                            
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="debug_mode" name="debug_mode"
+                                           <?php echo $settings->get('debug_mode', false) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="debug_mode">Enable Debug Mode</label>
+                                </div>
+                                <div class="form-text">
+                                    When enabled, detailed error messages and debugging information will be logged.
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="log_level" class="form-label">Log Level</label>
+                                <select class="form-select" id="log_level" name="log_level">
+                                    <?php
+                                    $logLevels = [
+                                        'ERROR' => 'Errors Only',
+                                        'WARNING' => 'Warnings and Errors',
+                                        'INFO' => 'Info, Warnings, and Errors',
+                                        'DEBUG' => 'All (Debug Level)',
+                                    ];
+                                    $currentLevel = $settings->get('log_level', 'ERROR');
+                                    foreach ($logLevels as $level => $description) {
+                                        $selected = ($level === $currentLevel) ? 'selected' : '';
+                                        echo "<option value=\"$level\" $selected>$description</option>";
+                                    }
+                                    ?>
+                                </select>
+                                <div class="form-text">
+                                    Select the level of detail for system logs.
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="log_retention" class="form-label">Log Retention (days)</label>
+                                <input type="number" class="form-control" id="log_retention" name="log_retention" 
+                                       value="<?php echo htmlspecialchars($settings->get('log_retention', '30')); ?>"
+                                       min="1" max="365">
+                                <div class="form-text">
+                                    Number of days to keep log files before automatic deletion.
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="display_errors" name="display_errors"
+                                           <?php echo $settings->get('display_errors', false) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="display_errors">Display PHP Errors</label>
+                                </div>
+                                <div class="form-text text-warning">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    Warning: Only enable this in development environments. Never use in production.
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="submit" class="btn btn-primary">Save Debug Settings</button>
+                                <a href="view_logs.php" class="btn btn-info">
+                                    <i class="bi bi-journal-text me-1"></i> View System Logs
+                                </a>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

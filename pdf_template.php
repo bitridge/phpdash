@@ -123,41 +123,9 @@
 <body>
     <!-- Header -->
     <div class="header">
-        <?php if ($project['logo_path']): ?>
-            <?php
-            $logger->log("PDF Template - Processing logo path: " . $project['logo_path'], 'INFO');
-            
-            // Try multiple path variations to find the logo
-            $logoPath = $project['logo_path'];
-            $paths = [
-                $logoPath,
-                __DIR__ . '/' . $logoPath,
-                $_SERVER['DOCUMENT_ROOT'] . '/' . ltrim($logoPath, '/'),
-                realpath($logoPath),
-                realpath(__DIR__ . '/' . $logoPath)
-            ];
-            
-            $logger->log("Trying paths: " . json_encode($paths), 'DEBUG');
-            
-            $validPath = null;
-            foreach ($paths as $path) {
-                $logger->log("Checking path: " . $path, 'DEBUG');
-                if ($path && file_exists($path)) {
-                    $validPath = $path;
-                    $logger->log("Valid path found: " . $path, 'INFO');
-                    break;
-                }
-            }
-            
-            if ($validPath) {
-                $logger->log("Using logo path: " . $validPath, 'INFO');
-            } else {
-                $logger->log("No valid logo path found", 'WARNING');
-            }
-            ?>
-            <?php if ($validPath): ?>
-                <img src="<?php echo $validPath; ?>" alt="Project Logo" class="project-logo">
-            <?php endif; ?>
+        <?php if ($project['logo_path'] && file_exists($project['logo_path'])): ?>
+            <?php $logger->log("PDF Template - Processing logo path: " . $project['logo_path'], 'INFO'); ?>
+            <img src="<?php echo $project['logo_path']; ?>" alt="Project Logo" class="project-logo">
         <?php endif; ?>
         <div class="project-name"><?php echo htmlspecialchars($project['project_name']); ?></div>
         <div class="report-title"><?php echo htmlspecialchars($report['title']); ?></div>
@@ -194,9 +162,11 @@
 
     <!-- SEO Logs -->
     <?php if (!empty($report['logs'])): ?>
+        <?php $logger->log("PDF Template - Starting to render SEO logs section. Total logs: " . count($report['logs']), 'INFO'); ?>
         <div class="section">
             <h2 class="section-title">SEO Activity Log</h2>
-            <?php foreach ($report['logs'] as $log): ?>
+            <?php foreach ($report['logs'] as $index => $log): ?>
+                <?php $logger->log("PDF Template - Rendering log {$index} (ID: {$log['id']}, Date: {$log['log_date']}, Type: {$log['log_type']})", 'DEBUG'); ?>
                 <div class="log-entry">
                     <div class="log-header">
                         <span class="log-type" style="background-color: <?php echo getLogTypeColor($log['log_type']); ?>">
@@ -207,16 +177,28 @@
                         </span>
                     </div>
                     <div class="log-content">
-                        <?php echo $log['log_details']; ?>
+                        <?php 
+                        $logger->log("PDF Template - Log content length: " . strlen($log['log_details']), 'DEBUG');
+                        echo $log['log_details']; 
+                        ?>
                     </div>
-                    <?php if (!empty($log['image_path']) && file_exists($log['image_path'])): ?>
-                        <div class="log-image-container">
-                            <img src="<?php echo $log['image_path']; ?>" alt="Log Image" class="log-image">
-                        </div>
+                    <?php if (!empty($log['image_path'])): ?>
+                        <?php $logger->log("PDF Template - Processing log image: " . $log['image_path'], 'DEBUG'); ?>
+                        <?php if (file_exists($log['image_path'])): ?>
+                            <div class="log-image-container">
+                                <img src="<?php echo $log['image_path']; ?>" alt="Log Image" class="log-image">
+                            </div>
+                            <?php $logger->log("PDF Template - Log image exists and was included", 'INFO'); ?>
+                        <?php else: ?>
+                            <?php $logger->log("PDF Template - Log image file not found: " . $log['image_path'], 'WARNING'); ?>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
             <?php endforeach; ?>
+            <?php $logger->log("PDF Template - Finished rendering SEO logs section", 'INFO'); ?>
         </div>
+    <?php else: ?>
+        <?php $logger->log("PDF Template - No SEO logs to render", 'WARNING'); ?>
     <?php endif; ?>
 </body>
 </html> 
