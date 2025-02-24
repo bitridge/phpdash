@@ -114,6 +114,8 @@
         a {
             color: #0066cc;
             text-decoration: underline;
+            word-wrap: break-word;
+            word-break: break-all;
         }
         .page-break {
             page-break-after: always;
@@ -134,7 +136,14 @@
     <!-- Report Description -->
     <?php if (!empty($report['description'])): ?>
         <div class="section">
-            <?php echo $report['description']; ?>
+            <?php 
+                // Process description content
+                $description = html_entity_decode($report['description']);
+                $description = str_replace(['<p><br></p>', '<p></p>'], '', $description);
+                // Convert URLs to clickable links
+                $description = preg_replace('/(https?:\/\/[^\s<]+)/', '<a href="$1">$1</a>', $description);
+                echo $description;
+            ?>
         </div>
     <?php endif; ?>
 
@@ -153,7 +162,18 @@
                 <?php 
                     // Process and output the content
                     $content = html_entity_decode($section['content']);
-                    $content = str_replace(['<p><br></p>', '<p></p>'], '', $content); // Remove empty paragraphs
+                    $content = str_replace(['<p><br></p>', '<p></p>'], '', $content);
+                    
+                    // Process links in Quill content
+                    $content = preg_replace_callback('/<a[^>]+href=([\'"])(.*?)\1[^>]*>(.*?)<\/a>/', function($matches) {
+                        $url = $matches[2];
+                        $text = strip_tags($matches[3]);
+                        return '<a href="' . $url . '">' . $text . '</a>';
+                    }, $content);
+                    
+                    // Convert plain URLs to clickable links (for URLs not already in anchor tags)
+                    $content = preg_replace('/(?<!href=[\'".])(https?:\/\/[^\s<]+)/', '<a href="$1">$1</a>', $content);
+                    
                     echo $content;
                 ?>
             </div>
@@ -203,8 +223,15 @@
                                 $content = '<p><em>No content available</em></p>';
                             }
                             
-                            // Convert URLs to clickable links
-                            $content = preg_replace('/(https?:\/\/[^\s<]+)/', '<a href="$1">$1</a>', $content);
+                            // Process links in content
+                            $content = preg_replace_callback('/<a[^>]+href=([\'"])(.*?)\1[^>]*>(.*?)<\/a>/', function($matches) {
+                                $url = $matches[2];
+                                $text = strip_tags($matches[3]);
+                                return '<a href="' . $url . '">' . $text . '</a>';
+                            }, $content);
+                            
+                            // Convert plain URLs to clickable links (for URLs not already in anchor tags)
+                            $content = preg_replace('/(?<!href=[\'".])(https?:\/\/[^\s<]+)/', '<a href="$1">$1</a>', $content);
                             
                             // Remove empty paragraphs
                             $content = str_replace(['<p><br></p>', '<p></p>'], '', $content);
