@@ -197,7 +197,7 @@ include 'templates/header.php';
                     <div class="card-body">
                         <h5 class="card-title">General Settings</h5>
                         <form method="POST" enctype="multipart/form-data">
-                            <input type="hidden" name="settings_group" value="general">
+                            <input type="hidden" name="app_settings" value="1">
                             
                             <div class="mb-3">
                                 <label for="app_name" class="form-label">Application Name</label>
