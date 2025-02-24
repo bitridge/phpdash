@@ -17,22 +17,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Handle application settings
         $settings->set('app_name', $_POST['app_name'] ?? 'SEO Dashboard');
         
-        // Handle timezone settings
-        $settings->set('timezone', $_POST['timezone'] ?? 'UTC');
-        $settings->set('date_format', $_POST['date_format'] ?? 'Y-m-d');
-        $settings->set('time_format', $_POST['time_format'] ?? 'H:i:s');
+        // Handle logo selection/upload
+        $logoUpdated = false;
         
-        // Handle logo upload
-        if (isset($_FILES['app_logo']) && $_FILES['app_logo']['size'] > 0) {
+        // Check if an existing logo was selected
+        if (!empty($_POST['selected_logo'])) {
+            // Verify the file exists
+            if (file_exists($_POST['selected_logo'])) {
+                $settings->set('app_logo', $_POST['selected_logo']);
+                $logoUpdated = true;
+            }
+        }
+        // If no existing logo was selected, check for uploaded file
+        elseif (isset($_FILES['app_logo']) && $_FILES['app_logo']['size'] > 0) {
             $logoPath = $settings->uploadLogo($_FILES['app_logo']);
             if ($logoPath) {
                 $settings->set('app_logo', $logoPath);
+                $logoUpdated = true;
             } else {
                 $error = 'Failed to upload logo';
             }
         }
         
-        $success = 'Application settings updated successfully';
+        if (!$error) {
+            $success = 'Application settings updated successfully' . 
+                      ($logoUpdated ? ' with new logo' : '');
+        }
     } elseif (isset($_POST['smtp_settings'])) {
         // Handle SMTP settings
         $smtpFields = [
@@ -196,13 +206,119 @@ include 'templates/header.php';
                             </div>
                             
                             <div class="mb-3">
-                                <label for="app_logo" class="form-label">Application Logo</label>
+                                <label class="form-label">Application Logo</label>
                                 <?php if ($logo = $settings->get('app_logo')): ?>
                                     <div class="mb-2">
-                                        <img src="<?php echo htmlspecialchars($logo); ?>" alt="Current Logo" style="max-height: 50px;">
+                                        <img src="<?php echo htmlspecialchars($logo); ?>" alt="Current Logo" style="max-height: 50px;" id="currentLogo">
                                     </div>
                                 <?php endif; ?>
-                                <input type="file" class="form-control" id="app_logo" name="app_logo" accept="image/*">
+
+                                <!-- Logo Selection Tabs -->
+                                <ul class="nav nav-tabs mb-3" id="logoTabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#upload" type="button" role="tab">
+                                            <i class="bi bi-upload me-1"></i>Upload New
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="gallery-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#gallery" type="button" role="tab">
+                                            <i class="bi bi-images me-1"></i>Choose Existing
+                                        </button>
+                                    </li>
+                                </ul>
+
+                                <div class="tab-content" id="logoTabsContent">
+                                    <!-- Upload Tab -->
+                                    <div class="tab-pane fade show active" id="upload" role="tabpanel">
+                                        <input type="file" class="form-control" id="app_logo" name="app_logo" accept="image/*">
+                                    </div>
+
+                                    <!-- Gallery Tab -->
+                                    <div class="tab-pane fade" id="gallery" role="tabpanel">
+                                        <input type="hidden" name="selected_logo" id="selected_logo" value="<?php echo htmlspecialchars($settings->get('app_logo', '')); ?>">
+                                        <div class="row g-3" id="imageGallery">
+                                            <?php
+                                            // Get all images from the uploads directory
+                                            $uploadsDir = 'uploads/';
+                                            $imageTypes = ['jpg', 'jpeg', 'png', 'gif', 'PNG', 'JPG', 'JPEG', 'GIF'];
+                                            $validImages = [];
+                                            
+                                            // Function to check if file is a valid image
+                                            function isValidImage($path) {
+                                                return file_exists($path) && @getimagesize($path) !== false;
+                                            }
+                                            
+                                            // Function to get relative path
+                                            function getRelativePath($fullPath, $basePath) {
+                                                return str_replace('\\', '/', substr($fullPath, strlen($basePath)));
+                                            }
+                                            
+                                            try {
+                                                if (is_dir($uploadsDir)) {
+                                                    $iterator = new RecursiveIteratorIterator(
+                                                        new RecursiveDirectoryIterator($uploadsDir, RecursiveDirectoryIterator::SKIP_DOTS),
+                                                        RecursiveIteratorIterator::SELF_FIRST
+                                                    );
+                                                    
+                                                    $basePath = realpath(getcwd()) . DIRECTORY_SEPARATOR;
+                                                    
+                                                    foreach ($iterator as $file) {
+                                                        if ($file->isFile()) {
+                                                            $ext = strtolower(pathinfo($file->getFilename(), PATHINFO_EXTENSION));
+                                                            if (in_array($ext, $imageTypes)) {
+                                                                $fullPath = $file->getRealPath();
+                                                                if (isValidImage($fullPath)) {
+                                                                    $relativePath = getRelativePath($fullPath, $basePath);
+                                                                    $validImages[] = [
+                                                                        'path' => $relativePath,
+                                                                        'name' => $file->getFilename(),
+                                                                        'modified' => $file->getMTime()
+                                                                    ];
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    
+                                                    // Sort images by most recently modified first
+                                                    usort($validImages, function($a, $b) {
+                                                        return $b['modified'] - $a['modified'];
+                                                    });
+                                                    
+                                                    // Display images
+                                                    foreach ($validImages as $image) {
+                                                        $isSelected = ($image['path'] === $settings->get('app_logo'));
+                                                        ?>
+                                                        <div class="col-6 col-md-4 col-lg-3">
+                                                            <div class="card h-100 <?php echo $isSelected ? 'border-primary' : ''; ?>" 
+                                                                 onclick="selectLogo('<?php echo htmlspecialchars($image['path']); ?>', this)">
+                                                                <div class="card-img-container" style="height: 150px; display: flex; align-items: center; justify-content: center; padding: 10px;">
+                                                                    <img src="<?php echo htmlspecialchars($image['path']); ?>" 
+                                                                         class="card-img-top" alt="Logo Option"
+                                                                         style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                                                </div>
+                                                                <div class="card-footer p-2 text-center bg-light">
+                                                                    <small class="text-muted text-truncate d-block" title="<?php echo htmlspecialchars($image['name']); ?>">
+                                                                        <?php echo htmlspecialchars($image['name']); ?>
+                                                                    </small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <?php
+                                                    }
+                                                }
+                                            } catch (Exception $e) {
+                                                echo '<div class="col-12"><div class="alert alert-warning">Error loading images: ' . htmlspecialchars($e->getMessage()) . '</div></div>';
+                                            }
+                                            
+                                            if (empty($validImages)) {
+                                                echo '<div class="col-12"><div class="alert alert-info">No images found in uploads directory.</div></div>';
+                                            }
+                                            ?>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             
                             <button type="submit" class="btn btn-primary">Save General Settings</button>
@@ -661,6 +777,85 @@ function updateDateTimePreview() {
 document.getElementById('timezone')?.addEventListener('change', updateDateTimePreview);
 document.getElementById('date_format')?.addEventListener('change', updateDateTimePreview);
 document.getElementById('time_format')?.addEventListener('change', updateDateTimePreview);
+
+function selectLogo(path, element) {
+    // Update hidden input
+    document.getElementById('selected_logo').value = path;
+    
+    // Update visual selection
+    document.querySelectorAll('#imageGallery .card').forEach(card => {
+        card.classList.remove('border-primary');
+    });
+    element.classList.add('border-primary');
+    
+    // Update current logo preview
+    const currentLogo = document.getElementById('currentLogo');
+    if (currentLogo) {
+        currentLogo.src = path;
+    }
+}
+
+// Handle form submission
+document.querySelector('form').addEventListener('submit', function(e) {
+    const fileInput = document.getElementById('app_logo');
+    const selectedLogo = document.getElementById('selected_logo');
+    
+    // If a file is selected, clear the selected logo path
+    if (fileInput.files.length > 0) {
+        selectedLogo.value = '';
+    }
+});
+
+// Add this to your existing script section
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips if you're using Bootstrap's tooltip component
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
 </script>
+
+<style>
+#imageGallery .card {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    border: 1px solid #dee2e6;
+}
+
+#imageGallery .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+#imageGallery .card.border-primary {
+    border-width: 2px;
+}
+
+#imageGallery .card-footer {
+    border-top: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+}
+
+#imageGallery .text-truncate {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.card-img-container {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.nav-tabs .nav-link {
+    color: #495057;
+}
+
+.nav-tabs .nav-link.active {
+    color: #0d6efd;
+}
+</style>
 
 <?php include 'templates/footer.php'; ?> 
