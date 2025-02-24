@@ -293,6 +293,12 @@ include 'templates/header.php';
                                                         <div class="col-6 col-md-4 col-lg-3">
                                                             <div class="card h-100 <?php echo $isSelected ? 'border-primary' : ''; ?>" 
                                                                  onclick="selectLogo('<?php echo htmlspecialchars($image['path']); ?>', this)">
+                                                                <?php if (isAdmin()): ?>
+                                                                <button type="button" class="delete-media-btn" 
+                                                                        onclick="event.stopPropagation(); deleteMedia('<?php echo htmlspecialchars($image['path']); ?>', this)">
+                                                                    <i class="bi bi-trash"></i>
+                                                                </button>
+                                                                <?php endif; ?>
                                                                 <div class="card-img-container" style="height: 150px; display: flex; align-items: center; justify-content: center; padding: 10px;">
                                                                     <img src="<?php echo htmlspecialchars($image['path']); ?>" 
                                                                          class="card-img-top" alt="Logo Option"
@@ -640,6 +646,26 @@ include 'templates/header.php';
     </div>
 </div>
 
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteMediaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Media</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this media file?</p>
+                <p class="text-danger mb-0">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 function showToast(message, type = 'success') {
     // Create toast container if it doesn't exist
@@ -814,6 +840,64 @@ document.addEventListener('DOMContentLoaded', function() {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 });
+
+// Add this to your existing script section
+let mediaToDelete = null;
+let elementToRemove = null;
+
+function deleteMedia(path, element) {
+    event.preventDefault(); // Prevent any parent click events
+    event.stopPropagation(); // Stop event bubbling
+    
+    mediaToDelete = path;
+    elementToRemove = element.closest('.col-6');
+    
+    // Show the confirmation modal
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteMediaModal'));
+    deleteModal.show();
+}
+
+// Handle delete confirmation
+document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
+    if (!mediaToDelete) return;
+    
+    try {
+        const response = await fetch('ajax/delete_media.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ path: mediaToDelete })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Remove the element from the gallery
+            elementToRemove.remove();
+            showToast('Media deleted successfully', 'success');
+            
+            // Hide the modal
+            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteMediaModal'));
+            deleteModal.hide();
+            
+            // If this was the selected logo, clear the selection
+            const selectedLogo = document.getElementById('selected_logo');
+            if (selectedLogo && selectedLogo.value === mediaToDelete) {
+                selectedLogo.value = '';
+                const currentLogo = document.getElementById('currentLogo');
+                if (currentLogo) {
+                    currentLogo.src = '';
+                }
+            }
+        } else {
+            showToast(result.message || 'Failed to delete media', 'danger');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('An error occurred while deleting', 'danger');
+    }
+});
 </script>
 
 <style>
@@ -821,6 +905,7 @@ document.addEventListener('DOMContentLoaded', function() {
     cursor: pointer;
     transition: all 0.2s ease-in-out;
     border: 1px solid #dee2e6;
+    position: relative;
 }
 
 #imageGallery .card:hover {
@@ -855,6 +940,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .nav-tabs .nav-link.active {
     color: #0d6efd;
+}
+
+.delete-media-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    display: none;
+    background-color: rgba(220, 53, 69, 0.9);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 14px;
+    z-index: 10;
+    transition: all 0.2s ease;
+}
+
+.delete-media-btn:hover {
+    background-color: rgba(220, 53, 69, 1);
+}
+
+.card:hover .delete-media-btn {
+    display: block;
 }
 </style>
 
