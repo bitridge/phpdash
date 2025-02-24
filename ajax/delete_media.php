@@ -30,7 +30,7 @@ try {
     $conn = getDbConnection();
 
     // Check if file is used as logo in settings
-    $stmt = $conn->prepare("SELECT id FROM settings WHERE setting_value = ?");
+    $stmt = $conn->prepare("SELECT id FROM settings WHERE CONVERT(setting_value USING utf8mb4) COLLATE utf8mb4_general_ci = ?");
     $stmt->bind_param('s', $filePath);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -46,13 +46,8 @@ try {
         }
     }
 
-    // Delete from media table if exists
-    $stmt = $conn->prepare("DELETE FROM media WHERE file_path = ?");
-    $stmt->bind_param('s', $filePath);
-    $stmt->execute();
-
-    // Delete from seo_logs table if exists (only the image reference)
-    $stmt = $conn->prepare("UPDATE seo_logs SET image_path = NULL WHERE image_path = ?");
+    // Update seo_logs table if exists (only the image reference)
+    $stmt = $conn->prepare("UPDATE seo_logs SET image_path = NULL WHERE CONVERT(image_path USING utf8mb4) COLLATE utf8mb4_general_ci = ?");
     $stmt->bind_param('s', $filePath);
     $stmt->execute();
 
